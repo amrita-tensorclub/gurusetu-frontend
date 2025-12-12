@@ -1,184 +1,288 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import Link from 'next/link';
-import { Card, CardContent } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
-import { mockFaculty, searchFaculty } from '@/lib/mock-data';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 
-export default function AllFacultyPage() {
+interface Faculty {
+  id: string;
+  user_id: string;
+  name: string;
+  employee_id: string;
+  department_id: string;
+  designation: string;
+  cabin_block: string;
+  cabin_floor: number;
+  cabin_number: string;
+  area_of_interest: string;
+  office_hours: string;
+  pg_details: string;
+  phd_details: string;
+  phone_number: string;
+  ug_details: string;
+  department: {
+    id: string;
+    name: string;
+    code: string;
+  };
+  user: {
+    id: string;
+    email: string;
+    username: string;
+    role: string;
+  };
+}
+
+interface FilterState {
+  departments: string[];
+}
+
+export default function StudentFaculty() {
+  const router = useRouter();
+  const [faculty, setFaculty] = useState<Faculty[]>([]);
+  const [filteredFaculty, setFilteredFaculty] = useState<Faculty[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedDepartment, setSelectedDepartment] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [filters, setFilters] = useState<FilterState>({
+    departments: []
+  });
 
-  const departments = ['All', ...new Set(mockFaculty.map(f => f.department))];
+  useEffect(() => {
+    loadFaculty();
+  }, []);
 
-  const filteredFaculty = useMemo(() => {
-    let faculty = mockFaculty;
-    
-    if (searchQuery) {
-      faculty = searchFaculty(searchQuery, selectedDepartment === 'All' ? undefined : selectedDepartment);
-    } else if (selectedDepartment && selectedDepartment !== 'All') {
-      faculty = faculty.filter(f => f.department === selectedDepartment);
+  useEffect(() => {
+    filterFaculty();
+  }, [faculty, searchQuery, filters]);
+  const loadFaculty = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('faculty')
+        .select(`
+          *,
+          department:departments(id, name, code),
+          user:users(id, email, username, role)
+        `);
+
+      if (data && !error) {
+        setFaculty(data);
+        
+        // Extract unique departments
+        const uniqueDepts = data.reduce((acc: any[], curr) => {
+          if (curr.department && !acc.find(dept => dept.id === curr.department.id)) {
+            acc.push(curr.department);
+          }
+          return acc;
+        }, []);
+        setDepartments(uniqueDepts);
+      } else {
+        console.error('Error loading faculty:', error);
+        setFaculty([]);
+        setDepartments([]);
+      }
+    } catch (error) {
+      console.error('Error loading faculty:', error);
+      setFaculty([]);
+      setDepartments([]);
+    } finally {
+      setIsLoading(false);
     }
-    
-    return faculty;
-  }, [searchQuery, selectedDepartment]);
+  };
+
+  const filterFaculty = () => {
+    let filtered = faculty;
+
+    // Filter by search query
+    if (searchQuery) {
+      filtered = filtered.filter(f => 
+        f.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        f.department?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        f.designation.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Filter by departments
+    if (filters.departments.length > 0) {
+      filtered = filtered.filter(f => 
+        filters.departments.includes(f.department?.code || '')
+      );
+    }
+
+    setFilteredFaculty(filtered);
+  };
+
+  const handleFilterChange = (type: keyof FilterState, value: string) => {
+    setFilters(prev => ({
+      ...prev,
+      [type]: prev[type].includes(value) 
+        ? prev[type].filter(item => item !== value)
+        : [...prev[type], value]
+    }));
+  };
+
+  const FacultyCard = ({ faculty }: { faculty: Faculty }) => (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          {/* Profile Photo */}
+          <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center overflow-hidden">
+            <img 
+              src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=48&h=48&fit=crop&crop=face" 
+              alt={faculty.name}
+              className="w-full h-full object-cover"
+            />
+          </div>
+          
+          <div className="flex-1">
+            {/* Name */}
+            <h3 className="font-bold text-gray-900 text-base">{faculty.name}</h3>
+            
+            {/* Department and Designation */}
+            <p className="text-gray-600 text-sm mb-1">{faculty.department?.code} Dept.</p>
+            <p className="text-gray-500 text-xs">{faculty.designation}</p>
+            
+            {/* Office Hours if available */}
+            {faculty.office_hours && (
+              <p className="text-gray-500 text-xs mt-1">Office: {faculty.office_hours}</p>
+            )}
+          </div>
+        </div>
+        
+        {/* Dropdown Arrow */}
+        <button 
+          onClick={() => router.push(`/dashboard/faculty/profile/${faculty.id}`)}
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+        >
+          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-[#8B1538] border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 relative">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-          All Faculty
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          Discover faculty members across all departments and their research areas.
-        </p>
-      </div>
-
-      {/* Filters */}
-      <div className="mb-8 space-y-4 lg:space-y-0 lg:flex lg:space-x-4">
-        <div className="flex-1">
-          <Input
-            placeholder="Search faculty by name or research area..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+      <header className="bg-[#8B1538] text-white px-4 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <button 
+              onClick={() => router.back()}
+              className="p-1"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <h1 className="text-xl font-semibold">All Faculty</h1>
+          </div>
+          <button className="p-1">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </button>
         </div>
-        <div className="lg:w-64">
-          <select
-            value={selectedDepartment}
-            onChange={(e) => setSelectedDepartment(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+      </header>
+
+      {/* Search Bar */}
+      <div className="bg-white px-4 py-4 border-b border-gray-200">
+        <div className="flex space-x-3">
+          <div className="flex-1 relative">
+            <input
+              type="text"
+              placeholder="Search faculty by name or domain..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-4 py-3 pl-12 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#8B1538] focus:border-transparent"
+            />
+            <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+          </div>
+          <button 
+            onClick={() => setShowFilters(!showFilters)}
+            className="px-4 py-3 border border-gray-300 rounded-lg bg-white flex items-center space-x-2 hover:bg-gray-50"
           >
-            {departments.map((dept) => (
-              <option key={dept} value={dept}>
-                {dept === 'All' ? 'All Departments' : dept}
-              </option>
-            ))}
-          </select>
+            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.707A1 1 0 013 7V4z" />
+            </svg>
+            <span className="text-gray-600 font-medium">Filter</span>
+          </button>
         </div>
       </div>
 
-      {/* Results Count */}
-      <div className="mb-6">
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          Showing {filteredFaculty.length} faculty member{filteredFaculty.length !== 1 ? 's' : ''}
-        </p>
+      <div className="px-4 py-4">
+        {/* Main Content */}
+        {filteredFaculty.length > 0 ? (
+          filteredFaculty.map((faculty) => (
+            <FacultyCard key={faculty.id} faculty={faculty} />
+          ))
+        ) : (
+          <div className="text-center py-16">
+            <div className="w-16 h-16 mx-auto mb-4 bg-gray-200 rounded-full flex items-center justify-center">
+              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No faculty found matching your criteria.</h3>
+          </div>
+        )}
       </div>
 
-      {/* Faculty Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredFaculty.map((faculty) => (
-          <Card key={faculty.id} className="hover:shadow-lg transition-shadow">
-            <CardContent className="p-6">
-              {/* Faculty Header */}
-              <div className="flex items-start space-x-4 mb-4">
-                <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold text-xl">
-                    {faculty.name.charAt(0)}
-                  </span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
-                    {faculty.name}
-                  </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {faculty.designation}
-                  </p>
-                  <p className="text-sm text-blue-600 dark:text-blue-400">
-                    {faculty.department}
-                  </p>
-                </div>
-                <div className="flex flex-col items-end">
-                  <div className={`w-3 h-3 rounded-full ${faculty.availability ? 'bg-green-400' : 'bg-red-400'}`}></div>
-                  <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {faculty.availability ? 'Available' : 'Busy'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Research Areas */}
-              <div className="mb-4">
-                <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">
-                  Research Areas
-                </h4>
-                <div className="flex flex-wrap gap-1">
-                  {faculty.researchAreas.slice(0, 3).map((area) => (
-                    <span
-                      key={area}
-                      className="inline-block px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded"
-                    >
-                      {area}
-                    </span>
-                  ))}
-                  {faculty.researchAreas.length > 3 && (
-                    <span className="inline-block px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded">
-                      +{faculty.researchAreas.length - 3} more
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Stats */}
-              <div className="grid grid-cols-2 gap-4 mb-4 text-center">
-                <div>
-                  <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {faculty.experience}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Years Exp.</p>
-                </div>
-                <div>
-                  <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {faculty.currentProjects.length}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Open Projects</p>
-                </div>
-              </div>
-
-              {/* Location */}
-              <div className="mb-4">
-                <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-1">
-                  Cabin Location
-                </h4>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {faculty.cabinLocation.building}, Floor {faculty.cabinLocation.floor}, Room {faculty.cabinLocation.room}
-                </p>
-              </div>
-
-              {/* Actions */}
+      {/* Filter Panel */}
+      {showFilters && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50 max-h-80 overflow-y-auto">
+          <div className="grid grid-cols-1 gap-6">
+            {/* Department Filter */}
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-3">Department</h3>
               <div className="space-y-2">
-                <Link href={`/dashboard/student/faculty/${faculty.id}`}>
-                  <Button className="w-full" size="sm">
-                    View Profile
-                  </Button>
-                </Link>
-                <div className="flex space-x-2">
-                  <Button variant="outline" size="sm" className="flex-1">
-                    Message
-                  </Button>
-                  <Button variant="outline" size="sm" className="flex-1">
-                    Get Directions
-                  </Button>
-                </div>
+                {departments.map(dept => (
+                  <label key={dept.id} className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={filters.departments.includes(dept.code)}
+                      onChange={() => handleFilterChange('departments', dept.code)}
+                      className="w-4 h-4 text-[#8B1538] border-gray-300 rounded focus:ring-[#8B1538]"
+                    />
+                    <span className="text-sm text-gray-700">{dept.code} - {dept.name}</span>
+                  </label>
+                ))}
               </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Empty State */}
-      {filteredFaculty.length === 0 && (
-        <div className="text-center py-12">
-          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No faculty found</h3>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Try adjusting your search criteria or browse all departments.
-          </p>
+            </div>
+          </div>
+          
+          {/* Close Filters */}
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <button 
+              onClick={() => setShowFilters(false)}
+              className="w-full bg-[#8B1538] text-white py-3 rounded-lg font-semibold hover:bg-[#7A1230] transition-colors"
+            >
+              Apply Filters
+            </button>
+          </div>
         </div>
+      )}
+      
+      {/* Filter Backdrop */}
+      {showFilters && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40"
+          onClick={() => setShowFilters(false)}
+        />
       )}
     </div>
   );
