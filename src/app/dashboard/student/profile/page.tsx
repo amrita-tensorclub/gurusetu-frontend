@@ -13,6 +13,7 @@ interface StudentProfile {
   bio: string | null;
   phone_number: string | null;
   department: {
+    id: string;
     name: string;
     code: string;
   };
@@ -22,9 +23,16 @@ interface StudentProfile {
   };
 }
 
+interface Department {
+  id: string;
+  name: string;
+  code: string;
+}
+
 export default function StudentProfile() {
   const router = useRouter();
   const [profile, setProfile] = useState<StudentProfile | null>(null);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [bioLength, setBioLength] = useState(0);
@@ -37,7 +45,40 @@ export default function StudentProfile() {
 
   useEffect(() => {
     loadProfile();
+    loadDepartments();
   }, []);
+
+  const loadDepartments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('departments')
+        .select('*')
+        .order('name');
+      
+      if (data && !error) {
+        setDepartments(data);
+      } else {
+        // Fallback departments data
+        setDepartments([
+          { id: '1', name: 'Computer Science & Engineering (CSE)', code: 'CSE' },
+          { id: '2', name: 'Electronics & Communication Engineering (ECE)', code: 'ECE' },
+          { id: '3', name: 'Mechanical Engineering (ME)', code: 'ME' },
+          { id: '4', name: 'Civil Engineering (CE)', code: 'CE' },
+          { id: '5', name: 'Electrical & Electronics Engineering (EEE)', code: 'EEE' }
+        ]);
+      }
+    } catch (error) {
+      console.error('Failed to load departments:', error);
+      // Use fallback data
+      setDepartments([
+        { id: '1', name: 'Computer Science & Engineering (CSE)', code: 'CSE' },
+        { id: '2', name: 'Electronics & Communication Engineering (ECE)', code: 'ECE' },
+        { id: '3', name: 'Mechanical Engineering (ME)', code: 'ME' },
+        { id: '4', name: 'Civil Engineering (CE)', code: 'CE' },
+        { id: '5', name: 'Electrical & Electronics Engineering (EEE)', code: 'EEE' }
+      ]);
+    }
+  };
 
   const loadProfile = async () => {
     try {
@@ -47,7 +88,7 @@ export default function StudentProfile() {
         .from('students')
         .select(`
           *,
-          department:departments(name, code),
+          department:departments(id, name, code),
           user:users(email, username)
         `)
         .eq('user_id', userData.id)
@@ -210,7 +251,7 @@ export default function StudentProfile() {
             <select
               disabled
               value={profile?.department?.name || 'Computer Science & Engineering (CSE)'}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-900 focus:outline-none"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 focus:outline-none"
             >
               <option value={profile?.department?.name || 'Computer Science & Engineering (CSE)'}>
                 {profile?.department?.name || 'Computer Science & Engineering (CSE)'}
@@ -225,7 +266,7 @@ export default function StudentProfile() {
               name="year"
               disabled
               value={formData.year}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-900 focus:outline-none"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 focus:outline-none"
             >
               <option value={formData.year}>{formData.year}</option>
             </select>
@@ -239,7 +280,7 @@ export default function StudentProfile() {
                 type="email"
                 disabled
                 value={profile?.user?.email || 'priya.sharma@amrita.edu'}
-                className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg bg-gray-100 text-gray-900 focus:outline-none"
+                className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 focus:outline-none"
               />
               <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                 <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -46,9 +46,9 @@ export default function LoginPage() {
       
       // Redirect to welcome page
       if (activeTab === 'student') {
-        router.push('/welcome/student');
+        router.push('/dashboard/student');
       } else {
-        router.push('/welcome/faculty');
+        router.push('/dashboard/faculty');
       }
     } catch (error) {
       setError('Login failed. Please try again.');
@@ -75,7 +75,6 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* University Buildings Illustration */}
         <div className="flex justify-center mb-12">
           <svg width="300" height="80" viewBox="0 0 300 80" className="text-gray-300">
             {/* Simple building illustration */}

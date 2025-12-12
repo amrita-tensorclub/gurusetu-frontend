@@ -38,8 +38,8 @@ export default function FacultyNavigationMenu({ isOpen, onClose }: NavigationMen
     try {
       const userData = JSON.parse(localStorage.getItem('user') || '{}');
       
-      if (!userData.id) {
-        // Fallback to localStorage if no user ID
+      if (!userData.id || !supabase) {
+        // Fallback to localStorage if no user ID or no database
         const profileData = localStorage.getItem('profile');
         if (profileData) {
           setProfile(JSON.parse(profileData));

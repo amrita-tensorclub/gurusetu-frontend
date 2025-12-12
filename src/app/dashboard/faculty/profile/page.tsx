@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
@@ -20,23 +20,32 @@ interface FacultyProfile {
   pg_details: string | null;
   phd_details: string | null;
   department: {
+    id: string;
     name: string;
     code: string;
-  };
+  } | null;
   user: {
     email: string;
     username: string;
-  };
+  } | null;
+}
+
+interface Department {
+  id: string;
+  name: string;
+  code: string;
 }
 
 export default function FacultyProfile() {
   const router = useRouter();
   const [profile, setProfile] = useState<FacultyProfile | null>(null);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [cabinExpanded, setCabinExpanded] = useState(true);
   const [formData, setFormData] = useState({
     designation: '',
+    department_id: '',
     phone_number: '',
     office_hours: '',
     cabin_block: '',
@@ -49,7 +58,7 @@ export default function FacultyProfile() {
 
   const designations = [
     'Assistant Professor',
-    'Associate Professor', 
+    'Associate Professor',
     'Professor',
     'Senior Professor',
     'Professor Emeritus',
@@ -57,58 +66,95 @@ export default function FacultyProfile() {
     'Senior Lecturer'
   ];
 
-  const departments = [
-    'Computer Science & Engineering',
-    'Electronics & Communication Engineering',
-    'Electrical & Electronics Engineering',
-    'Mechanical Engineering',
-    'Civil Engineering',
-    'Chemical Engineering',
-    'Aerospace Engineering'
-  ];
-
   const blocks = ['A', 'B', 'C', 'D', 'E'];
   const floors = ['0', '1', '2', '3', '4', '5'];
 
   useEffect(() => {
     loadProfile();
+    loadDepartments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const loadDepartments = async () => {
+    try {
+      if (!supabase) {
+        // Fallback departments data
+        setDepartments([
+          { id: '1', code: 'CSE', name: 'Computer Science & Engineering' },
+          { id: '2', code: 'ECE', name: 'Electronics & Communication Engineering' },
+          { id: '3', code: 'ME', name: 'Mechanical Engineering' },
+          { id: '4', code: 'CE', name: 'Civil Engineering' }
+        ]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('departments')
+        .select('*')
+        .order('name');
+
+      if (data && !error) {
+        setDepartments(data);
+      } else {
+        // Fallback if query fails
+        setDepartments([
+          { id: '1', code: 'CSE', name: 'Computer Science & Engineering' },
+          { id: '2', code: 'ECE', name: 'Electronics & Communication Engineering' },
+          { id: '3', code: 'ME', name: 'Mechanical Engineering' },
+          { id: '4', code: 'CE', name: 'Civil Engineering' }
+        ]);
+      }
+    } catch (error) {
+      console.error('Error loading departments:', error);
+    }
+  };
 
   const loadProfile = async () => {
     try {
       const userData = JSON.parse(localStorage.getItem('user') || '{}');
-      
+
+      // supabase is guaranteed non-null by /lib/supabase.ts
       const { data, error } = await supabase
         .from('faculty')
-        .select(`
+        .select(
+          `
           *,
           department:departments(name, code),
           user:users(email, username)
-        `)
+        `
+        )
         .eq('user_id', userData.id)
         .single();
 
-      if (data && !error) {
-        setProfile(data);
+      if (error) {
+        console.warn('Failed to fetch profile from Supabase:', error);
+      }
+
+      if (data) {
+        // cast data into our local type (it should match the returned shape)
+        const fetched = data as unknown as FacultyProfile;
+        setProfile(fetched);
         setFormData({
-          designation: data.designation || '',
-          phone_number: data.phone_number || '',
-          office_hours: data.office_hours || '',
-          cabin_block: data.cabin_block || '',
-          cabin_floor: data.cabin_floor?.toString() || '',
-          cabin_number: data.cabin_number || '',
-          ug_details: data.ug_details || '',
-          pg_details: data.pg_details || '',
-          phd_details: data.phd_details || ''
+          designation: fetched.designation || '',
+          department_id: fetched.department_id || '',
+          phone_number: fetched.phone_number || '',
+          office_hours: fetched.office_hours || '',
+          cabin_block: fetched.cabin_block || '',
+          cabin_floor: fetched.cabin_floor?.toString() || '',
+          cabin_number: fetched.cabin_number || '',
+          ug_details: fetched.ug_details || '',
+          pg_details: fetched.pg_details || '',
+          phd_details: fetched.phd_details || ''
         });
       } else {
-        // Fallback to localStorage
+        // fallback: try localStorage 'profile' if present
         const profileData = localStorage.getItem('profile');
         if (profileData) {
-          const parsed = JSON.parse(profileData);
+          const parsed = JSON.parse(profileData) as FacultyProfile;
           setProfile(parsed);
           setFormData({
             designation: parsed.designation || 'Assistant Professor',
+            department_id: parsed.department_id || '',
             phone_number: parsed.phone_number || '',
             office_hours: parsed.office_hours || 'Mon, Wed, Fri: 2 PM - 4 PM',
             cabin_block: parsed.cabin_block || 'B',
@@ -120,8 +166,8 @@ export default function FacultyProfile() {
           });
         }
       }
-    } catch (error) {
-      console.error('Profile load error:', error);
+    } catch (err) {
+      console.error('Profile load error:', err);
     } finally {
       setIsLoading(false);
     }
@@ -139,11 +185,13 @@ export default function FacultyProfile() {
     setIsSaving(true);
     try {
       const userData = JSON.parse(localStorage.getItem('user') || '{}');
-      
+
+      // supabase is non-null
       const { error } = await supabase
         .from('faculty')
         .update({
-          designation: formData.designation,
+          designation: formData.designation || null,
+          department_id: formData.department_id || null,
           phone_number: formData.phone_number || null,
           office_hours: formData.office_hours || null,
           cabin_block: formData.cabin_block || null,
@@ -156,15 +204,29 @@ export default function FacultyProfile() {
         .eq('user_id', userData.id);
 
       if (!error) {
-        // Update local storage
-        const updatedProfile = { ...profile, ...formData };
+        // Update local storage with merged profile
+        const updatedProfile = {
+          ...(profile ?? {}),
+          ...{
+            designation: formData.designation || null,
+            phone_number: formData.phone_number || null,
+            office_hours: formData.office_hours || null,
+            cabin_block: formData.cabin_block || null,
+            cabin_floor: formData.cabin_floor ? parseInt(formData.cabin_floor) : null,
+            cabin_number: formData.cabin_number || null,
+            ug_details: formData.ug_details || null,
+            pg_details: formData.pg_details || null,
+            phd_details: formData.phd_details || null
+          }
+        };
         localStorage.setItem('profile', JSON.stringify(updatedProfile));
         alert('Profile updated successfully!');
       } else {
+        console.error('Save error from supabase:', error);
         alert('Failed to update profile');
       }
-    } catch (error) {
-      console.error('Save error:', error);
+    } catch (err) {
+      console.error('Save error:', err);
       alert('Failed to update profile');
     } finally {
       setIsSaving(false);
@@ -192,7 +254,7 @@ export default function FacultyProfile() {
       <header className="bg-[#8B1538] text-white px-4 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <button 
+            <button
               onClick={() => router.back()}
               className="p-1"
             >
@@ -202,7 +264,7 @@ export default function FacultyProfile() {
             </button>
             <h1 className="text-xl font-semibold">Faculty Profile</h1>
           </div>
-          <button className="p-1">
+          <button className="p-1" aria-hidden>
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
             </svg>
@@ -216,9 +278,9 @@ export default function FacultyProfile() {
         <div className="text-center mb-8">
           <div className="relative inline-block">
             <div className="w-24 h-24 bg-gray-300 rounded-full flex items-center justify-center text-white text-2xl font-medium overflow-hidden">
-              <img 
-                src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face" 
-                alt="Profile" 
+              <img
+                src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face"
+                alt="Profile"
                 className="w-full h-full object-cover"
               />
             </div>
@@ -255,13 +317,17 @@ export default function FacultyProfile() {
           <div>
             <label className="block text-sm text-gray-600 mb-2">Department</label>
             <select
-              disabled
-              value={profile?.department?.name || 'Computer Science & Engineering'}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-900 focus:outline-none"
+              name="department_id"
+              value={formData.department_id}
+              onChange={handleInputChange}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#8B1538] focus:border-transparent"
             >
-              <option value={profile?.department?.name || 'Computer Science & Engineering'}>
-                {profile?.department?.name || 'Computer Science & Engineering'}
-              </option>
+              <option value="">Select Department</option>
+              {departments.map((dept) => (
+                <option key={dept.id} value={dept.id}>
+                  {dept.name} ({dept.code})
+                </option>
+              ))}
             </select>
           </div>
 
@@ -329,14 +395,16 @@ export default function FacultyProfile() {
                 </svg>
                 <span className="text-lg font-medium text-gray-900">Cabin Location</span>
               </div>
-              <svg 
-                className={`w-5 h-5 text-gray-400 transform transition-transform ${cabinExpanded ? 'rotate-180' : ''}`} 
-                fill="none" stroke="currentColor" viewBox="0 0 24 24"
+              <svg
+                className={`w-5 h-5 text-gray-400 transform transition-transform ${cabinExpanded ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
               </svg>
             </button>
-            
+
             {cabinExpanded && (
               <div className="grid grid-cols-3 gap-4 mt-4">
                 <div>
@@ -389,12 +457,12 @@ export default function FacultyProfile() {
           {/* Qualifications */}
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Qualifications</h3>
-            
+
             {/* UG Details */}
             <div className="mb-4">
               <div className="flex items-center space-x-2 mb-2">
                 <span className="text-sm font-medium text-gray-700">UG Details</span>
-                <button className="w-6 h-6 bg-[#8B1538] rounded-full flex items-center justify-center">
+                <button className="w-6 h-6 bg-[#8B1538] rounded-full flex items-center justify-center" aria-hidden>
                   <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
                   </svg>
@@ -409,7 +477,7 @@ export default function FacultyProfile() {
                     onChange={handleInputChange}
                     className="flex-1 bg-transparent text-sm text-gray-700 outline-none"
                   />
-                  <button 
+                  <button
                     onClick={() => removeQualification('ug_details')}
                     className="text-gray-400 hover:text-red-500 ml-2"
                   >
@@ -434,7 +502,7 @@ export default function FacultyProfile() {
             <div className="mb-4">
               <div className="flex items-center space-x-2 mb-2">
                 <span className="text-sm font-medium text-gray-700">PG Details</span>
-                <button className="w-6 h-6 bg-[#8B1538] rounded-full flex items-center justify-center">
+                <button className="w-6 h-6 bg-[#8B1538] rounded-full flex items-center justify-center" aria-hidden>
                   <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
                   </svg>
@@ -449,7 +517,7 @@ export default function FacultyProfile() {
                     onChange={handleInputChange}
                     className="flex-1 bg-transparent text-sm text-gray-700 outline-none"
                   />
-                  <button 
+                  <button
                     onClick={() => removeQualification('pg_details')}
                     className="text-gray-400 hover:text-red-500 ml-2"
                   >
@@ -474,7 +542,7 @@ export default function FacultyProfile() {
             <div className="mb-6">
               <div className="flex items-center space-x-2 mb-2">
                 <span className="text-sm font-medium text-gray-700">PhD Details</span>
-                <button className="w-6 h-6 bg-[#8B1538] rounded-full flex items-center justify-center">
+                <button className="w-6 h-6 bg-[#8B1538] rounded-full flex items-center justify-center" aria-hidden>
                   <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
                   </svg>
@@ -489,7 +557,7 @@ export default function FacultyProfile() {
                     onChange={handleInputChange}
                     className="flex-1 bg-transparent text-sm text-gray-700 outline-none"
                   />
-                  <button 
+                  <button
                     onClick={() => removeQualification('phd_details')}
                     className="text-gray-400 hover:text-red-500 ml-2"
                   >

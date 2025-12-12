@@ -1,58 +1,75 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const serviceKey = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY;
 
+/**
+ * Fail fast if required public envs are missing.
+ * This makes `supabase` always a SupabaseClient (non-nullable) for client code.
+ */
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Supabase environment variables not configured. Using mock client for development.');
+  throw new Error(
+    'Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY. ' +
+      'Add them to .env.local (or ensure the deployment sets them).'
+  );
 }
 
-// Create mock client for development when env vars are missing
-const createMockClient = () => ({
-  from: () => ({
-    select: () => ({ data: [], error: null }),
-    insert: () => ({ data: null, error: null }),
-    update: () => ({ data: null, error: null }),
-    delete: () => ({ data: null, error: null }),
-    eq: function(this: any) { return this; },
-    neq: function(this: any) { return this; },
-    single: function(this: any) { return { data: null, error: null }; }
-  }),
+export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    signUp: () => ({ data: null, error: null }),
-    signInWithPassword: () => ({ data: null, error: null }),
-    signOut: () => ({ error: null })
-  }
+    persistSession: true,
+    autoRefreshToken: true,
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'gurusetu-app',
+    },
+  },
 });
 
-export const supabase = supabaseUrl && supabaseAnonKey 
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : createMockClient();
+// Admin client (nullable because it's intended for server-side with service key)
+export const supabaseAdmin: SupabaseClient | null =
+  serviceKey && supabaseUrl
+    ? createClient(supabaseUrl, serviceKey, {
+        auth: { autoRefreshToken: false, persistSession: false },
+        global: { headers: { 'X-Client-Info': 'gurusetu-admin' } },
+      })
+    : null;
 
-export const supabaseAdmin = serviceKey && supabaseUrl
-  ? createClient(supabaseUrl, serviceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    })
-  : createMockClient() as any;
-
-// Server-side client factory (for cases where you need to create multiple instances)
+// Server-side client factory (returns null if service key missing)
 export const createServerClient = () => {
-  if (!supabaseUrl || !serviceKey) {
-    return createMockClient() as any;
-  }
+  if (!supabaseUrl || !serviceKey) return null;
   return createClient(supabaseUrl, serviceKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
+    auth: { autoRefreshToken: false, persistSession: false },
   });
 };
 
-// Database types based on your schema
+export const isDevMode = () => !supabaseUrl || !supabaseAnonKey;
+
+/**
+ * Optional helper: try an operation and fall back to provided fallback data
+ * (keeps behaviour similar to what you had). Since supabase is non-nullable,
+ * we don't need to check it here.
+ */
+export const withFallback = async <T>(
+  operation: () => Promise<{ data: T | null; error: any }>,
+  fallbackData: T
+): Promise<{ data: T; error: null }> => {
+  try {
+    const result = await operation();
+    if (result.error) {
+      console.warn('Database operation failed, using fallback:', result.error);
+      return { data: fallbackData, error: null };
+    }
+    return { data: (result.data ?? fallbackData) as T, error: null };
+  } catch (error) {
+    console.warn('Database connection failed, using fallback:', error);
+    return { data: fallbackData, error: null };
+  }
+};
+
+/* --- schema interfaces (keep/update as needed) --- */
+
 export interface User {
   id: string;
   email: string;
