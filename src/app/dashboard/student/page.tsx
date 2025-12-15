@@ -73,8 +73,40 @@ export default function StudentDashboard() {
 
   useEffect(() => {
     loadStudentData();
-    loadProjects();
   }, []);
+
+  useEffect(() => {
+    if (studentData) {
+      loadProjects();
+    }
+  }, [studentData]);
+
+  // Calculate match percentage between student and project
+  const calculateMatchPercentage = (project: any, student: StudentData | null): number => {
+    if (!student) return 50; // Default match if no student data
+    
+    let matchScore = 50; // Base score
+    
+    // Department match bonus
+    if (project.faculty?.department_id === student.department_id) {
+      matchScore += 20;
+    }
+    
+    // Interest overlap (if available)
+    if (student.bio && project.description) {
+      const studentInterests = student.bio.toLowerCase().split(' ');
+      const projectKeywords = project.description.toLowerCase().split(' ');
+      const overlap = studentInterests.filter(interest => 
+        projectKeywords.some((keyword: string) => keyword.includes(interest) || interest.includes(keyword))
+      ).length;
+      matchScore += Math.min(20, overlap * 5);
+    }
+    
+    // Random variation for demo purposes
+    matchScore += Math.random() * 20 - 10;
+    
+    return Math.min(100, Math.max(60, Math.round(matchScore)));
+  };
 
   const loadStudentData = async () => {
     try {
@@ -95,128 +127,81 @@ export default function StudentDashboard() {
         if (data && !error) {
           setStudentData(data);
         } else {
-          // Fallback data
-          const fallbackData = {
-            id: '1',
-            name: 'Priya Sharma',
-            roll_number: 'AM.EN.U4CSE22051',
+          console.error('Error loading student data:', error);
+          console.log('User data:', userData);
+          // Create a basic placeholder if student not found
+          setStudentData({
+            id: userData.id || 'temp_id',
+            name: userData.name || userData.username || 'Student',
+            roll_number: userData.roll_number || 'Unknown',
             year: 3,
             department_id: '1',
             bio: null,
             phone_number: null,
             department: { id: '1', name: 'Computer Science & Engineering', code: 'CSE' },
-            user: { email: 'priya.sharma@amrita.edu', username: 'priya.sharma' }
-          };
-          setStudentData(fallbackData);
+            user: { email: userData.email || 'student@college.edu', username: userData.username || 'student' }
+          });
         }
       }
     } catch (error) {
       console.error('Error loading student data:', error);
-      // Use fallback data
-      const fallbackData = {
-        id: '1',
-        name: 'Priya Sharma',
-        roll_number: 'AM.EN.U4CSE22051',
+      // Set basic user data from localStorage if available
+      const userData = JSON.parse(localStorage.getItem('user') || '{}');
+      setStudentData({
+        id: userData.id || 'temp_id',
+        name: userData.name || userData.username || 'Student',
+        roll_number: userData.roll_number || 'Unknown',
         year: 3,
         department_id: '1',
         bio: null,
         phone_number: null,
         department: { id: '1', name: 'Computer Science & Engineering', code: 'CSE' },
-        user: { email: 'priya.sharma@amrita.edu', username: 'priya.sharma' }
-      };
-      setStudentData(fallbackData);
+        user: { email: userData.email || 'student@college.edu', username: userData.username || 'student' }
+      });
     }
   };
 
   const loadProjects = async () => {
     try {
-      const { data: facultyData, error } = await supabase
-        .from('faculty')
+      // First, try to load project openings with faculty data
+      const { data: projectOpenings, error } = await supabase
+        .from('faculty_project_openings')
         .select(`
           *,
-          department:departments(id, name, code),
-          user:users(id, email, username, full_name)
-        `);
+          faculty!inner (
+            id,
+            name,
+            designation,
+            department_id,
+            area_of_interest,
+            department:departments(id, name, code),
+            user:users(id, email, username, role)
+          )
+        `)
+        .eq('status', 'open');
 
-      if (facultyData && !error) {
-        // Create mock research projects based on faculty data
-        const projects: ResearchProject[] = [];
-        
-        facultyData.forEach((faculty, index) => {
-          const projectTitles = [
-            'AI-Driven Medical Imaging for Early Diagnosis',
-            'Smart Grid Optimization using IoT',
-            'Cybersecurity in Fintech Applications',
-            'Sustainable Materials for Construction',
-            'Robotics for Disaster Response',
-            'Machine Learning in Agriculture',
-            'Blockchain for Supply Chain',
-            'Neural Networks in Healthcare'
-          ];
+      if (projectOpenings && !error && projectOpenings.length > 0) {
+        console.log('Loaded project openings:', projectOpenings);
+        // Transform database format to match component interface
+        const projects: ResearchProject[] = projectOpenings.map((opening) => {
+          // Calculate match percentage based on student interests (basic algorithm)
+          const matchPercentage = calculateMatchPercentage(opening, studentData);
           
-          const descriptions = [
-            'Develop deep learning models to analyze medical scans for early disease detection',
-            'Implement IoT sensors for real-time monitoring and control of smart grid systems',
-            'Researching secure transaction protocols using blockchain technology',
-            'Researching sustainable unit materials and plants for construction industry',
-            'Developing autonomous robots for emergency response and disaster management',
-            'Applying ML algorithms to optimize crop yield and farming practices',
-            'Creating secure blockchain solutions for transparent supply chains',
-            'Building neural networks for medical diagnosis and treatment planning'
-          ];
-          
-          const skillSets = [
-            ['Machine Learning', 'Healthcare AI', 'Python', 'TensorFlow'],
-            ['IoT', 'Renewable Energy', 'Smart Systems', 'Energy Management'],
-            ['Cybersecurity', 'Blockchain', 'Fintech', 'Cryptography'],
-            ['Materials Science', 'Sustainability', 'Construction', 'Research'],
-            ['Robotics', 'Autonomous Systems', 'Emergency Response', 'AI'],
-            ['Machine Learning', 'Agriculture', 'Data Analytics', 'IoT'],
-            ['Blockchain', 'Supply Chain', 'Distributed Systems', 'Security'],
-            ['Neural Networks', 'Healthcare', 'Deep Learning', 'Medical AI']
-          ];
-          
-          const matchPercentages = [92, 88, 85, 87, 85, 90, 83, 89];
-          
-          if (index < projectTitles.length) {
-            projects.push({
-              id: `proj_${faculty.id}_${index}`,
-              faculty_id: faculty.id,
-              title: projectTitles[index],
-              description: descriptions[index],
-              requirements: 'Strong programming skills and interest in research',
-              duration: '6-12 months',
-              status: 'open',
-              skills_required: skillSets[index],
-              department_focus: faculty.department?.name || 'General',
-              match_percentage: matchPercentages[index],
-              faculty: faculty
-            });
-          }
-        });
-        
-        // Sort by match percentage and split
-        projects.sort((a, b) => (b.match_percentage || 0) - (a.match_percentage || 0));
-        setRecommendedProjects(projects.slice(0, 2));
-        setAllProjects(projects.slice(2));
-      } else {
-        // Fallback projects data
-        const fallbackProjects = [
-          {
-            id: '1',
-            faculty_id: '1',
-            title: 'AI-Driven Medical Imaging for Early Diagnosis',
-            description: 'Develop deep learning models to analyze medical scans for early disease detection',
-            requirements: 'Strong programming skills',
-            duration: '6 months',
-            status: 'open',
-            skills_required: ['Machine Learning', 'Healthcare AI'],
-            department_focus: 'Computer Science & Engineering',
-            match_percentage: 92,
+          return {
+            id: opening.id,
+            faculty_id: opening.faculty_id,
+            title: opening.topic,
+            description: opening.description || '',
+            requirements: opening.required_skills || '',
+            duration: opening.expected_duration || '',
+            status: opening.status,
+            skills_required: opening.tech_stack ? opening.tech_stack.split(',').map((skill: string) => skill.trim()) : [],
+            department_focus: opening.faculty?.department?.name || 'General',
+            match_percentage: matchPercentage,
             faculty: {
-              id: '1',
-              designation: 'Professor',
-              department_id: '1',
+              id: opening.faculty?.id || '',
+              designation: opening.faculty?.designation || 'Faculty',
+              department_id: opening.faculty?.department_id || '',
               phone_number: '',
               office_hours: '',
               cabin_block: '',
@@ -225,16 +210,100 @@ export default function StudentDashboard() {
               ug_details: '',
               pg_details: '',
               phd_details: '',
-              department: { id: '1', name: 'Computer Science & Engineering', code: 'CSE' },
-              user: { id: '1', email: 'rajesh.kumar@amrita.edu', username: 'rajesh.kumar', full_name: 'Dr. Rajesh Kumar' }
+              department: opening.faculty?.department || { id: '', name: 'General', code: 'GEN' },
+              user: {
+                id: opening.faculty?.user?.id || '',
+                email: opening.faculty?.user?.email || '',
+                username: opening.faculty?.user?.username || '',
+                full_name: opening.faculty?.name || 'Faculty Member'
+              }
             }
-          }
-        ];
-        setRecommendedProjects(fallbackProjects);
-        setAllProjects([]);
+          };
+        });
+        
+        // Sort by match percentage and split into recommended and all
+        projects.sort((a, b) => (b.match_percentage || 0) - (a.match_percentage || 0));
+        const recommendedCount = Math.min(3, projects.length);
+        setRecommendedProjects(projects.slice(0, recommendedCount));
+        setAllProjects(projects.slice(recommendedCount));
+      } else {
+        // Fallback: Try to load projects without joins
+        console.log('Trying fallback query without joins...');
+        const { data: simpleProjects, error: simpleError } = await supabase
+          .from('faculty_project_openings')
+          .select('*')
+          .eq('status', 'open');
+
+        if (simpleProjects && !simpleError && simpleProjects.length > 0) {
+          console.log('Loaded simple projects:', simpleProjects);
+          
+          // Get faculty data separately
+          const facultyIds = simpleProjects.map(p => p.faculty_id);
+          const { data: facultyData, error: facultyError } = await supabase
+            .from('faculty')
+            .select(`
+              id,
+              name,
+              designation,
+              department_id,
+              area_of_interest,
+              department:departments(id, name, code),
+              user:users(id, email, username, role)
+            `)
+            .in('id', facultyIds);
+
+          const projects: ResearchProject[] = simpleProjects.map((opening) => {
+            const faculty = facultyData?.find(f => f.id === opening.faculty_id);
+            const matchPercentage = calculateMatchPercentage(opening, studentData);
+            
+            return {
+              id: opening.id,
+              faculty_id: opening.faculty_id,
+              title: opening.topic,
+              description: opening.description || '',
+              requirements: opening.required_skills || '',
+              duration: opening.expected_duration || '',
+              status: opening.status,
+              skills_required: opening.tech_stack ? opening.tech_stack.split(',').map((skill: string) => skill.trim()) : [],
+              department_focus: faculty?.department?.name || 'General',
+              match_percentage: matchPercentage,
+              faculty: {
+                id: faculty?.id || '',
+                designation: faculty?.designation || 'Faculty',
+                department_id: faculty?.department_id || '',
+                phone_number: '',
+                office_hours: '',
+                cabin_block: '',
+                cabin_floor: 1,
+                cabin_number: '',
+                ug_details: '',
+                pg_details: '',
+                phd_details: '',
+                department: faculty?.department || { id: '', name: 'General', code: 'GEN' },
+                user: {
+                  id: faculty?.user?.id || '',
+                  email: faculty?.user?.email || '',
+                  username: faculty?.user?.username || '',
+                  full_name: faculty?.name || 'Faculty Member'
+                }
+              }
+            };
+          });
+
+          projects.sort((a, b) => (b.match_percentage || 0) - (a.match_percentage || 0));
+          const recommendedCount = Math.min(3, projects.length);
+          setRecommendedProjects(projects.slice(0, recommendedCount));
+          setAllProjects(projects.slice(recommendedCount));
+        } else {
+          console.error('Error loading projects:', error || simpleError);
+          setRecommendedProjects([]);
+          setAllProjects([]);
+        }
       }
     } catch (error) {
       console.error('Error loading projects:', error);
+      setRecommendedProjects([]);
+      setAllProjects([]);
     } finally {
       setIsLoading(false);
     }
@@ -251,11 +320,11 @@ export default function StudentDashboard() {
   const ProjectCard = ({ project, isRecommended = false }: { project: ResearchProject; isRecommended?: boolean }) => (
     <div className="bg-white rounded-2xl border border-yellow-200 shadow-sm p-4 mb-4 relative">
       {/* Match Badge */}
-      {isRecommended && project.match_percentage && (
+      {/* {isRecommended && project.match_percentage && (
         <div className="absolute -top-2 -right-2 bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-bold">
           {project.match_percentage}% Match
         </div>
-      )}
+      )} */}
       
       {/* Project Content */}
       <div className="space-y-3">

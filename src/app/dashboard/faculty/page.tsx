@@ -274,9 +274,14 @@ export default function FacultyDashboard() {
           {/* Right - Notifications and Profile */}
           <div className="flex items-center space-x-4">
             <button className="p-2">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-5 5v-5zM13.07 8.25A5.978 5.978 0 0019 12v5M12 2L3 7v4c0 5.55 3.84 10 9 10 1.33 0 2.57-.23 3.72-.64" />
+              <svg
+                className="w-6 h-6"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M12 22a2 2 0 002-2h-4a2 2 0 002 2zm6-6V11a6 6 0 10-12 0v5l-2 2v1h16v-1l-2-2z" />
               </svg>
+
             </button>
             <button className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -299,6 +304,34 @@ export default function FacultyDashboard() {
 
       {/* Main Content */}
       <div className="px-4 py-6 space-y-8">
+        {/* Quick Actions Section */}
+        <div>
+          <h3 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <button 
+              onClick={() => router.push('/dashboard/faculty/projects')}
+              className="bg-[#8B1538] text-white p-4 rounded-xl shadow-sm hover:bg-[#7A1230] transition-colors"
+            >
+              <div className="flex flex-col items-center space-y-2">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                <span className="text-sm font-medium">Manage Projects</span>
+              </div>
+            </button>
+            <button 
+              onClick={() => router.push('/dashboard/faculty/collaborations')}
+              className="bg-white border-2 border-[#8B1538] text-[#8B1538] p-4 rounded-xl shadow-sm hover:bg-[#8B1538] hover:text-white transition-colors"
+            >
+              <div className="flex flex-col items-center space-y-2">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+                <span className="text-sm font-medium">Find Collaborators</span>
+              </div>
+            </button>
+          </div>
+        </div>
         {/* Recommended Students Section */}
         <div>
           <h3 className="text-xl font-bold text-gray-900 mb-4">Recommended Students</h3>

@@ -175,7 +175,7 @@ export default function FacultyNavigationMenu({ isOpen, onClose }: NavigationMen
               {/* Profile Photo */}
               <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-white">
                 <img 
-                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face" 
+                  // src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face" 
                   alt="Profile" 
                   className="w-full h-full object-cover"
                 />
