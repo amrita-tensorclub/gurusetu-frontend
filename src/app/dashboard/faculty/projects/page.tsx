@@ -120,6 +120,8 @@ export default function FacultyProjects() {
 
       const projectData = {
         ...formData,
+        tech_stack: formData.tech_stack.toLowerCase(), // Normalize to lowercase
+        required_skills: formData.required_skills.toLowerCase(), // Normalize to lowercase
         faculty_id: facultyData.id,
       };
 
@@ -304,7 +306,7 @@ export default function FacultyProjects() {
                     <span className="text-xs text-gray-600 font-medium">Tech Stack:</span>
                     {project.tech_stack.split(',').map((tech, index) => (
                       <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-xs font-medium">
-                        {tech.trim()}
+                        {tech.trim().charAt(0).toUpperCase() + tech.trim().slice(1)}
                       </span>
                     ))}
                   </div>

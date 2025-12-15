@@ -58,36 +58,14 @@ export default function StudentNavigationMenu({ isOpen, onClose }: StudentNaviga
         if (data && !error) {
           setStudentProfile(data);
         } else {
-          // Fallback data
-          const fallbackData = {
-            id: '1',
-            name: 'Priya Sharma',
-            roll_number: 'AM.EN.U4CSE22051',
-            year: 3,
-            department_id: '1',
-            bio: null,
-            phone_number: null,
-            department: { id: '1', name: 'Computer Science & Engineering', code: 'CSE' },
-            user: { email: 'priya.sharma@amrita.edu', username: 'priya.sharma' }
-          };
-          setStudentProfile(fallbackData);
+          // No fallback data - user must complete profile setup
+          setStudentProfile(null);
         }
       }
     } catch (error) {
       console.error('Failed to load student profile:', error);
-      // Use fallback data
-      const fallbackData = {
-        id: '1',
-        name: 'Priya Sharma',
-        roll_number: 'AM.EN.U4CSE22051',
-        year: 3,
-        department_id: '1',
-        bio: null,
-        phone_number: null,
-        department: { id: '1', name: 'Computer Science & Engineering', code: 'CSE' },
-        user: { email: 'priya.sharma@amrita.edu', username: 'priya.sharma' }
-      };
-      setStudentProfile(fallbackData);
+      // No fallback data - user must complete profile setup
+      setStudentProfile(null);
     } finally {
       setIsLoading(false);
     }
@@ -121,6 +99,15 @@ export default function StudentNavigationMenu({ isOpen, onClose }: StudentNaviga
     {
       icon: (
         <svg className="w-5 h-5 text-[#8B1538]" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+        </svg>
+      ),
+      label: 'Interests & Experience',
+      href: '/dashboard/student/interests'
+    },
+    {
+      icon: (
+        <svg className="w-5 h-5 text-[#8B1538]" fill="currentColor" viewBox="0 0 24 24">
           <path d="M20 6h-2.18c.11-.31.18-.65.18-1a2.996 2.996 0 0 0-5.5-1.65l-.5.67-.5-.68C10.96 2.54 10.05 2 9 2 7.34 2 6 3.34 6 5c0 .35.07.69.18 1H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-5-2c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zM9 4c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1z"/>
         </svg>
       ),
@@ -130,7 +117,7 @@ export default function StudentNavigationMenu({ isOpen, onClose }: StudentNaviga
     {
       icon: (
         <svg className="w-5 h-5 text-[#8B1538]" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"/>
+          <path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8 8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"/>
         </svg>
       ),
       label: 'Help & Support',
@@ -166,23 +153,21 @@ export default function StudentNavigationMenu({ isOpen, onClose }: StudentNaviga
         <div className="bg-[#8B1538] px-6 py-8 text-white">
           <div className="flex flex-col items-center">
             {/* Profile Photo */}
-            <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mb-4 overflow-hidden">
-              <img 
-                src="https://images.unsplash.com/photo-1494790108755-2616b612b37c?w=80&h=80&fit=crop&crop=face" 
-                alt="Profile" 
-                className="w-full h-full object-cover"
-              />
+            <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mb-4">
+              <span className="text-[#8B1538] text-2xl font-bold">
+                {studentProfile?.name ? studentProfile.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'ST'}
+              </span>
             </div>
             
             {/* Profile Info */}
             <h2 className="text-lg font-bold text-center mb-1">
-              {studentProfile?.name || 'Priya Sharma'}
+              {studentProfile?.name || 'Student'}
             </h2>
             <p className="text-sm text-white/90 mb-1">
-              Roll No: {studentProfile?.roll_number || 'AM.EN.U4CSE22051'}
+              Roll No: {studentProfile?.roll_number || 'Not set'}
             </p>
             <p className="text-sm text-white/90">
-              Department: {studentProfile?.department?.code || 'CSE'}
+              Department: {studentProfile?.department?.code || 'Not set'}
             </p>
           </div>
         </div>

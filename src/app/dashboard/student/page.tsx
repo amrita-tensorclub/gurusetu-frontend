@@ -13,6 +13,7 @@ interface StudentData {
   department_id: string;
   bio: string | null;
   phone_number: string | null;
+  area_of_interest: string | null;
   department: {
     id: string;
     name: string;
@@ -81,31 +82,125 @@ export default function StudentDashboard() {
     }
   }, [studentData]);
 
-  // Calculate match percentage between student and project
+  // Enhanced interest-based matching algorithm
   const calculateMatchPercentage = (project: any, student: StudentData | null): number => {
-    if (!student) return 50; // Default match if no student data
-    
-    let matchScore = 50; // Base score
-    
-    // Department match bonus
-    if (project.faculty?.department_id === student.department_id) {
-      matchScore += 20;
+    if (!student || !student.area_of_interest) {
+      console.log('No student or student interests found');
+      return 20; // Very low score if no student interests
     }
     
-    // Interest overlap (if available)
-    if (student.bio && project.description) {
-      const studentInterests = student.bio.toLowerCase().split(' ');
-      const projectKeywords = project.description.toLowerCase().split(' ');
-      const overlap = studentInterests.filter(interest => 
-        projectKeywords.some((keyword: string) => keyword.includes(interest) || interest.includes(keyword))
-      ).length;
-      matchScore += Math.min(20, overlap * 5);
+    let matchScore = 20; // Start with low base score
+    
+    // Parse student interests from area_of_interest field (normalize to lowercase)
+    const studentInterests = student.area_of_interest 
+      ? student.area_of_interest.split(',').map((interest: string) => interest.trim().toLowerCase())
+      : [];
+    
+    console.log('=== MATCHING DEBUG ===');
+    console.log('Project ID:', project.id);
+    console.log('Project Topic:', project.topic);
+    console.log('Student interests:', studentInterests);
+    
+    if (studentInterests.length === 0) {
+      console.log('No student interests found, returning low score');
+      return 20;
     }
     
-    // Random variation for demo purposes
-    matchScore += Math.random() * 20 - 10;
+    // Get faculty data
+    const faculty = project.faculty;
     
-    return Math.min(100, Math.max(60, Math.round(matchScore)));
+    // Check faculty area of interest match (normalize to lowercase)
+    const facultyInterests = faculty?.area_of_interest 
+      ? faculty.area_of_interest.split(',').map((i: string) => i.trim().toLowerCase())
+      : [];
+    
+    // Check project tech_stack and description (normalize to lowercase)
+    const projectTechStack = project.tech_stack 
+      ? project.tech_stack.split(',').map((skill: string) => skill.trim().toLowerCase())
+      : [];
+    
+    const projectDescription = (project.description || '').toLowerCase();
+    const projectTitle = (project.topic || '').toLowerCase();
+    
+    console.log('Faculty interests:', facultyInterests);
+    console.log('Project tech stack:', projectTechStack);
+    console.log('Project description:', projectDescription.substring(0, 100) + '...');
+    
+    // Calculate interest match score
+    let interestMatches = 0;
+    const matchedInterests: string[] = [];
+    
+    studentInterests.forEach((studentInterest: string) => {
+      let bestMatchScore = 0;
+      let bestMatch = '';
+      
+      // Check against faculty interests (highest priority - only if exact or very close match)
+      facultyInterests.forEach((facultyInterest: string) => {
+        if (facultyInterest === studentInterest || 
+            (facultyInterest.length > 3 && studentInterest.length > 3 && 
+             (facultyInterest.includes(studentInterest) || studentInterest.includes(facultyInterest)))) {
+          if (25 > bestMatchScore) {
+            bestMatchScore = 25;
+            bestMatch = `Faculty: ${studentInterest} → ${facultyInterest}`;
+          }
+        }
+      });
+      
+      // Check against project tech stack (high priority - only if exact or very close match)
+      if (bestMatchScore < 20) {
+        projectTechStack.forEach((techSkill: string) => {
+          if (techSkill === studentInterest || 
+              (techSkill.length > 2 && studentInterest.length > 2 && 
+               (techSkill.includes(studentInterest) || studentInterest.includes(techSkill)))) {
+            if (20 > bestMatchScore) {
+              bestMatchScore = 20;
+              bestMatch = `Tech: ${studentInterest} → ${techSkill}`;
+            }
+          }
+        });
+      }
+      
+      // Check against project title (medium priority - only if meaningful match)
+      if (bestMatchScore < 15 && studentInterest.length > 3) {
+        if (projectTitle.includes(studentInterest)) {
+          bestMatchScore = 15;
+          bestMatch = `Title: ${studentInterest}`;
+        }
+      }
+      
+      // Check against project description (lowest priority - only if meaningful match)
+      if (bestMatchScore < 10 && studentInterest.length > 4) {
+        if (projectDescription.includes(studentInterest)) {
+          bestMatchScore = 10;
+          bestMatch = `Description: ${studentInterest}`;
+        }
+      }
+      
+      if (bestMatchScore > 0) {
+        interestMatches += bestMatchScore;
+        matchedInterests.push(bestMatch);
+        console.log(`Interest "${studentInterest}" - best match: ${bestMatch} (${bestMatchScore} points)`);
+      } else {
+        console.log(`Interest "${studentInterest}" - no meaningful match found`);
+      }
+    });
+    
+    matchScore += Math.min(interestMatches, 50); // Cap at 50 points for interests (more restrictive)
+    
+    // Department match bonus (small)
+    if (faculty?.department_id === student.department_id) {
+      matchScore += 5;
+      console.log('Department match bonus added');
+    }
+    
+    // No random component - scores should be deterministic
+    matchScore = Math.max(15, Math.min(90, matchScore));
+    
+    console.log('Matched interests:', matchedInterests);
+    console.log(`Final match score for "${project.topic}": ${Math.round(matchScore)}%`);
+    console.log('=== END MATCHING DEBUG ===\n');
+    
+    return Math.round(matchScore);
   };
 
   const loadStudentData = async () => {
@@ -138,6 +233,7 @@ export default function StudentDashboard() {
             department_id: '1',
             bio: null,
             phone_number: null,
+            area_of_interest: null,
             department: { id: '1', name: 'Computer Science & Engineering', code: 'CSE' },
             user: { email: userData.email || 'student@college.edu', username: userData.username || 'student' }
           });
@@ -155,6 +251,7 @@ export default function StudentDashboard() {
         department_id: '1',
         bio: null,
         phone_number: null,
+        area_of_interest: null,
         department: { id: '1', name: 'Computer Science & Engineering', code: 'CSE' },
         user: { email: userData.email || 'student@college.edu', username: userData.username || 'student' }
       });
@@ -163,7 +260,28 @@ export default function StudentDashboard() {
 
   const loadProjects = async () => {
     try {
-      // First, try to load project openings with faculty data
+      // Get current user data
+      const userData = JSON.parse(localStorage.getItem('user') || '{}');
+      if (!userData.id) {
+        console.log('No user ID found');
+        return;
+      }
+
+      // Get fresh student data for matching
+      const { data: currentStudent, error: studentError } = await supabase
+        .from('students')
+        .select('*')
+        .eq('user_id', userData.id)
+        .single();
+
+      if (studentError || !currentStudent) {
+        console.log('No student data found for matching');
+        return;
+      }
+
+      console.log('Current student for matching:', currentStudent);
+
+      // Load project openings with faculty data
       const { data: projectOpenings, error } = await supabase
         .from('faculty_project_openings')
         .select(`
@@ -184,8 +302,8 @@ export default function StudentDashboard() {
         console.log('Loaded project openings:', projectOpenings);
         // Transform database format to match component interface
         const projects: ResearchProject[] = projectOpenings.map((opening) => {
-          // Calculate match percentage based on student interests (basic algorithm)
-          const matchPercentage = calculateMatchPercentage(opening, studentData);
+          // Calculate match percentage using fresh student data
+          const matchPercentage = calculateMatchPercentage(opening, currentStudent);
           
           return {
             id: opening.id,
@@ -196,7 +314,13 @@ export default function StudentDashboard() {
             duration: opening.expected_duration || '',
             status: opening.status,
             skills_required: opening.tech_stack ? opening.tech_stack.split(',').map((skill: string) => skill.trim()) : [],
-            department_focus: opening.faculty?.department?.name || 'General',
+            department_focus: (() => {
+              const dept = opening.faculty?.department as any;
+              if (Array.isArray(dept)) {
+                return dept[0]?.name || 'General';
+              }
+              return dept?.name || 'General';
+            })(),
             match_percentage: matchPercentage,
             faculty: {
               id: opening.faculty?.id || '',
@@ -210,11 +334,35 @@ export default function StudentDashboard() {
               ug_details: '',
               pg_details: '',
               phd_details: '',
-              department: opening.faculty?.department || { id: '', name: 'General', code: 'GEN' },
+              department: (() => {
+                const dept = opening.faculty?.department as any;
+                if (Array.isArray(dept)) {
+                  return dept[0] || { id: '', name: 'General', code: 'GEN' };
+                }
+                return dept || { id: '', name: 'General', code: 'GEN' };
+              })(),
               user: {
-                id: opening.faculty?.user?.id || '',
-                email: opening.faculty?.user?.email || '',
-                username: opening.faculty?.user?.username || '',
+                id: (() => {
+                  const user = opening.faculty?.user as any;
+                  if (Array.isArray(user)) {
+                    return user[0]?.id || '';
+                  }
+                  return user?.id || '';
+                })(),
+                email: (() => {
+                  const user = opening.faculty?.user as any;
+                  if (Array.isArray(user)) {
+                    return user[0]?.email || '';
+                  }
+                  return user?.email || '';
+                })(),
+                username: (() => {
+                  const user = opening.faculty?.user as any;
+                  if (Array.isArray(user)) {
+                    return user[0]?.username || '';
+                  }
+                  return user?.username || '';
+                })(),
                 full_name: opening.faculty?.name || 'Faculty Member'
               }
             }
@@ -223,9 +371,43 @@ export default function StudentDashboard() {
         
         // Sort by match percentage and split into recommended and all
         projects.sort((a, b) => (b.match_percentage || 0) - (a.match_percentage || 0));
-        const recommendedCount = Math.min(3, projects.length);
-        setRecommendedProjects(projects.slice(0, recommendedCount));
-        setAllProjects(projects.slice(recommendedCount));
+        
+        console.log('\n=== PROJECT FILTERING ===');
+        console.log('All projects with scores:');
+        projects.forEach(p => {
+          console.log(`- ${p.title}: ${p.match_percentage}%`);
+        });
+        
+        // More restrictive: Only projects with 70%+ match are "recommended"
+        const recommendedThreshold = 70;
+        const recommendedProjects = projects.filter(p => {
+          const score = p.match_percentage || 0;
+          const isRecommended = score >= recommendedThreshold;
+          console.log(`Project "${p.title}" (${score}%) - Recommended: ${isRecommended}`);
+          return isRecommended;
+        });
+        
+        const allOtherProjects = projects; // All projects for "All Research Openings" section
+        
+        console.log(`\nFILTER RESULTS:`);
+        console.log(`- Recommended projects (${recommendedThreshold}%+ match): ${recommendedProjects.length}`);
+        console.log(`- Recommended project titles:`, recommendedProjects.map(p => p.title));
+        console.log(`- All available projects: ${allOtherProjects.length}`);
+        
+        // If no recommendations, show message
+        if (recommendedProjects.length === 0) {
+          console.log('No projects meet recommendation threshold. Student may need to update interests.');
+        }
+        
+        console.log('=== END PROJECT FILTERING ===\n');
+        
+        setRecommendedProjects(recommendedProjects);
+        setAllProjects(allOtherProjects);
+        
+        // Debug logging for UI rendering
+        console.log('Setting state:');
+        console.log('- recommendedProjects:', recommendedProjects.length, recommendedProjects.map(p => p.title));
+        console.log('- allProjects:', allOtherProjects.length, allOtherProjects.map(p => p.title));
       } else {
         // Fallback: Try to load projects without joins
         console.log('Trying fallback query without joins...');
@@ -254,7 +436,7 @@ export default function StudentDashboard() {
 
           const projects: ResearchProject[] = simpleProjects.map((opening) => {
             const faculty = facultyData?.find(f => f.id === opening.faculty_id);
-            const matchPercentage = calculateMatchPercentage(opening, studentData);
+            const matchPercentage = calculateMatchPercentage(opening, currentStudent);
             
             return {
               id: opening.id,
@@ -265,7 +447,13 @@ export default function StudentDashboard() {
               duration: opening.expected_duration || '',
               status: opening.status,
               skills_required: opening.tech_stack ? opening.tech_stack.split(',').map((skill: string) => skill.trim()) : [],
-              department_focus: faculty?.department?.name || 'General',
+              department_focus: (() => {
+                const dept = faculty?.department as any;
+                if (Array.isArray(dept)) {
+                  return dept[0]?.name || 'General';
+                }
+                return dept?.name || 'General';
+              })(),
               match_percentage: matchPercentage,
               faculty: {
                 id: faculty?.id || '',
@@ -279,11 +467,35 @@ export default function StudentDashboard() {
                 ug_details: '',
                 pg_details: '',
                 phd_details: '',
-                department: faculty?.department || { id: '', name: 'General', code: 'GEN' },
+                department: (() => {
+                  const dept = faculty?.department as any;
+                  if (Array.isArray(dept)) {
+                    return dept[0] || { id: '', name: 'General', code: 'GEN' };
+                  }
+                  return dept || { id: '', name: 'General', code: 'GEN' };
+                })(),
                 user: {
-                  id: faculty?.user?.id || '',
-                  email: faculty?.user?.email || '',
-                  username: faculty?.user?.username || '',
+                  id: (() => {
+                    const user = faculty?.user as any;
+                    if (Array.isArray(user)) {
+                      return user[0]?.id || '';
+                    }
+                    return user?.id || '';
+                  })(),
+                  email: (() => {
+                    const user = faculty?.user as any;
+                    if (Array.isArray(user)) {
+                      return user[0]?.email || '';
+                    }
+                    return user?.email || '';
+                  })(),
+                  username: (() => {
+                    const user = faculty?.user as any;
+                    if (Array.isArray(user)) {
+                      return user[0]?.username || '';
+                    }
+                    return user?.username || '';
+                  })(),
                   full_name: faculty?.name || 'Faculty Member'
                 }
               }
@@ -291,9 +503,17 @@ export default function StudentDashboard() {
           });
 
           projects.sort((a, b) => (b.match_percentage || 0) - (a.match_percentage || 0));
-          const recommendedCount = Math.min(3, projects.length);
-          setRecommendedProjects(projects.slice(0, recommendedCount));
-          setAllProjects(projects.slice(recommendedCount));
+          
+          // Use same threshold as main section - projects with 70%+ match are "recommended"
+          const recommendedThreshold = 70;
+          const recommendedProjects = projects.filter(p => (p.match_percentage || 0) >= recommendedThreshold);
+          const allOtherProjects = projects; // All projects for "All Research Openings" section
+          
+          console.log('Fallback - Recommended projects (70%+ match):', recommendedProjects.length);
+          console.log('Fallback - All available projects:', allOtherProjects.length);
+          
+          setRecommendedProjects(recommendedProjects);
+          setAllProjects(allOtherProjects);
         } else {
           console.error('Error loading projects:', error || simpleError);
           setRecommendedProjects([]);
@@ -333,12 +553,10 @@ export default function StudentDashboard() {
         
         {/* Faculty Info */}
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center overflow-hidden">
-            <img 
-              src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face" 
-              alt={project.faculty.user.full_name}
-              className="w-full h-full object-cover"
-            />
+          <div className="w-10 h-10 bg-[#8B1538] rounded-full flex items-center justify-center">
+            <span className="text-white text-sm font-bold">
+              {project.faculty.user.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+            </span>
           </div>
           <div>
             <p className="font-medium text-gray-900 text-sm">{project.faculty.user.full_name}</p>
@@ -348,14 +566,19 @@ export default function StudentDashboard() {
         
         {/* Skills Tags */}
         <div className="flex flex-wrap gap-2">
-          {project.skills_required.slice(0, 3).map((skill, index) => (
+          {project.skills_required.slice(0, 4).map((skill, index) => (
             <span 
               key={index}
               className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium"
             >
-              {skill}
+              {skill.charAt(0).toUpperCase() + skill.slice(1)}
             </span>
           ))}
+          {project.skills_required.length > 4 && (
+            <span className="px-3 py-1 bg-gray-200 text-gray-600 rounded-full text-xs font-medium">
+              +{project.skills_required.length - 4} more
+            </span>
+          )}
         </div>
         
         {/* Description */}
@@ -417,9 +640,32 @@ export default function StudentDashboard() {
           </div>
           
           <div className="space-y-4">
-            {recommendedProjects.map((project) => (
-              <ProjectCard key={project.id} project={project} isRecommended={true} />
-            ))}
+            {recommendedProjects.length > 0 ? (
+              recommendedProjects.map((project) => (
+                <ProjectCard key={project.id} project={project} isRecommended={true} />
+              ))
+            ) : (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+                <div className="text-blue-600 mb-2">
+                  <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h4 className="text-lg font-semibold text-gray-900 mb-2">No Personalized Recommendations</h4>
+                <p className="text-gray-600 mb-4">
+                  {!studentData?.area_of_interest ? 
+                    "Update your interests in your profile to get personalized project recommendations." :
+                    "No projects currently match your interests. Try expanding your interests or check back later for new projects."
+                  }
+                </p>
+                <Link 
+                  href="/dashboard/student/interests"
+                  className="inline-block bg-[#8B1538] text-white px-6 py-2 rounded-lg font-semibold hover:bg-[#7A1230] transition-colors"
+                >
+                  {!studentData?.area_of_interest ? "Add Your Interests" : "Update Interests"}
+                </Link>
+              </div>
+            )}
           </div>
         </div>
 
@@ -427,11 +673,7 @@ export default function StudentDashboard() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-gray-900">All Research Openings</h3>
-            <button className="bg-yellow-500 p-2 rounded-lg">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.707A1 1 0 013 7V4z" />
-              </svg>
-            </button>
+            
           </div>
           
           <div className="space-y-4">

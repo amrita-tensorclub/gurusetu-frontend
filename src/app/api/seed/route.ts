@@ -5,6 +5,10 @@ export async function POST(request: NextRequest) {
   try {
     const supabaseAdmin = createServerClient();
 
+    if (!supabaseAdmin) {
+      return NextResponse.json({ error: 'Supabase client not available' }, { status: 500 });
+    }
+
     // Create departments first
     const departments = [
       { name: 'Computer Science & Engineering', code: 'CSE' },
@@ -34,59 +38,8 @@ export async function POST(request: NextRequest) {
     const eceDept = deptData.find(d => d.code === 'ECE');
 
     // Create sample students
-    const sampleStudents = [
-      {
-        name: 'Priya Sharma',
-        roll_number: 'CSE001',
-        department_id: cseDept?.id,
-        year: 3,
-        area_of_interest: 'Machine Learning, Computer Vision, Python, Data Science',
-        user: {
-          email: 'priya.sharma@example.com',
-          username: 'priya_sharma',
-          password_hash: 'hashed_password',
-          role: 'student'
-        }
-      },
-      {
-        name: 'Rahul Verma',
-        roll_number: 'ECE002', 
-        department_id: eceDept?.id,
-        year: 4,
-        area_of_interest: 'Embedded Systems, IoT, C++, Electronics Design',
-        user: {
-          email: 'rahul.verma@example.com',
-          username: 'rahul_verma',
-          password_hash: 'hashed_password',
-          role: 'student'
-        }
-      },
-      {
-        name: 'Ananya Gupta',
-        roll_number: 'CSE003',
-        department_id: cseDept?.id,
-        year: 2,
-        area_of_interest: 'Web Development, JavaScript, React, Node.js',
-        user: {
-          email: 'ananya.gupta@example.com',
-          username: 'ananya_gupta',
-          password_hash: 'hashed_password',
-          role: 'student'
-        }
-      },
-      {
-        name: 'Vikram Singh',
-        roll_number: 'ECE004',
-        department_id: eceDept?.id,
-        year: 3,
-        area_of_interest: 'Robotics, Automation, Control Systems, MATLAB',
-        user: {
-          email: 'vikram.singh@example.com',
-          username: 'vikram_singh',
-          password_hash: 'hashed_password',
-          role: 'student'
-        }
-      }
+    const sampleStudents: any[] = [
+      // Real student data will be created through normal registration process
     ];
 
     // Create users and students
@@ -121,39 +74,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Create sample faculty
-    const sampleFaculty = [
-      {
-        name: 'Meera Reddy',
-        employee_id: 'FAC001',
-        department_id: eceDept?.id,
-        designation: 'Assistant Professor',
-        area_of_interest: 'Renewable Energy, Smart Grid, Power Electronics',
-        cabin_block: 'EE Block',
-        cabin_floor: 2,
-        cabin_number: '201',
-        user: {
-          email: 'meera.reddy@college.edu',
-          username: 'meera_reddy',
-          password_hash: 'hashed_password',
-          role: 'faculty'
-        }
-      },
-      {
-        name: 'Anand Singh',
-        employee_id: 'FAC002',
-        department_id: cseDept?.id,
-        designation: 'Professor',
-        area_of_interest: 'Urban Mobility, Smart Transportation, AI in Civil Engineering',
-        cabin_block: 'CS Block',
-        cabin_floor: 3,
-        cabin_number: '305',
-        user: {
-          email: 'anand.singh@college.edu',
-          username: 'anand_singh',
-          password_hash: 'hashed_password',
-          role: 'faculty'
-        }
-      }
+    const sampleFaculty: any[] = [
+      // Real faculty data will be created through normal registration process
     ];
 
     // Create faculty users and profiles

@@ -103,67 +103,17 @@ export default function CollaborationsPage() {
     } catch (error) {
       console.error('Error loading faculty data:', error);
       // Fallback to local data if database fails
-      loadFallbackData();
+      // loadFallbackData();
+
     } finally {
       setIsLoading(false);
     }
   };
 
   const loadFallbackData = () => {
-    // Fallback data when database is not available
-    const fallbackFaculty: FacultyProfile[] = [
-      {
-        id: '1',
-        name: 'Dr. Rajesh Kumar',
-        employee_id: 'FAC.CSE.2015',
-        designation: 'Associate Professor',
-        area_of_interest: 'Artificial Intelligence, Machine Learning, Healthcare Technology',
-        cabin_block: 'B',
-        cabin_floor: 2,
-        cabin_number: 'B-205',
-        department: { id: '1', name: 'Computer Science & Engineering', code: 'CSE' },
-        user: { email: 'rajesh.kumar@amrita.edu', username: 'rajeshk' }
-      },
-      {
-        id: '2',
-        name: 'Dr. Meera Reddy',
-        employee_id: 'FAC.ECE.2018',
-        designation: 'Assistant Professor',
-        area_of_interest: 'Power Systems, Smart Grid, Renewable Energy',
-        cabin_block: 'C',
-        cabin_floor: 3,
-        cabin_number: 'C-315',
-        department: { id: '2', name: 'Electrical & Communication Engineering', code: 'ECE' },
-        user: { email: 'meera.reddy@amrita.edu', username: 'meerar' }
-      },
-      {
-        id: '3',
-        name: 'Dr. Arjun Nair',
-        employee_id: 'FAC.ME.2016',
-        designation: 'Professor',
-        area_of_interest: 'Manufacturing Systems, IoT, Industry 4.0',
-        cabin_block: 'A',
-        cabin_floor: 1,
-        cabin_number: 'A-105',
-        department: { id: '3', name: 'Mechanical Engineering', code: 'ME' },
-        user: { email: 'arjun.nair@amrita.edu', username: 'arjunn' }
-      },
-      {
-        id: '4',
-        name: 'Dr. Priya Sharma',
-        employee_id: 'FAC.CSE.2020',
-        designation: 'Assistant Professor',
-        area_of_interest: 'Data Science, Climate Modeling, Environmental Informatics',
-        cabin_block: 'B',
-        cabin_floor: 3,
-        cabin_number: 'B-308',
-        department: { id: '1', name: 'Computer Science & Engineering', code: 'CSE' },
-        user: { email: 'priya.sharma@amrita.edu', username: 'priyas' }
-      }
-    ];
-
-    setFacultyProfiles(fallbackFaculty);
-    setMyRequests(2);
+    // No fallback data - faculty must register properly
+    setFacultyProfiles([]);
+    setMyRequests(0);
   };
 
   const applyFilters = () => {
