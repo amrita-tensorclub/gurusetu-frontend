@@ -86,10 +86,10 @@ export default function StudentDashboard() {
   const calculateMatchPercentage = (project: any, student: StudentData | null): number => {
     if (!student || !student.area_of_interest) {
       console.log('No student or student interests found');
-      return 20; // Very low score if no student interests
+      return 25; // Slightly higher base score
     }
     
-    let matchScore = 20; // Start with low base score
+    let matchScore = 25; // Start with slightly higher base score
     
     // Parse student interests from area_of_interest field (normalize to lowercase)
     const studentInterests = student.area_of_interest 
@@ -103,7 +103,7 @@ export default function StudentDashboard() {
     
     if (studentInterests.length === 0) {
       console.log('No student interests found, returning low score');
-      return 20;
+      return 25;
     }
     
     // Get faculty data
@@ -134,44 +134,72 @@ export default function StudentDashboard() {
       let bestMatchScore = 0;
       let bestMatch = '';
       
-      // Check against faculty interests (highest priority - only if exact or very close match)
+      // Check against faculty interests (highest priority)
       facultyInterests.forEach((facultyInterest: string) => {
-        if (facultyInterest === studentInterest || 
-            (facultyInterest.length > 3 && studentInterest.length > 3 && 
-             (facultyInterest.includes(studentInterest) || studentInterest.includes(facultyInterest)))) {
-          if (25 > bestMatchScore) {
-            bestMatchScore = 25;
-            bestMatch = `Faculty: ${studentInterest} → ${facultyInterest}`;
+        // Exact match or very close match
+        if (facultyInterest === studentInterest) {
+          bestMatchScore = Math.max(bestMatchScore, 30);
+          bestMatch = `Faculty exact: ${studentInterest}`;
+        }
+        // Substring match (more lenient)
+        else if (facultyInterest.includes(studentInterest) || studentInterest.includes(facultyInterest)) {
+          bestMatchScore = Math.max(bestMatchScore, 25);
+          bestMatch = `Faculty contains: ${studentInterest} ↔ ${facultyInterest}`;
+        }
+        // Partial word match for technology names
+        else if (studentInterest.length >= 3 && facultyInterest.length >= 3) {
+          const words1 = studentInterest.split(/[\s-_]+/);
+          const words2 = facultyInterest.split(/[\s-_]+/);
+          for (const w1 of words1) {
+            for (const w2 of words2) {
+              if (w1.length >= 3 && w2.length >= 3 && (w1.includes(w2) || w2.includes(w1))) {
+                bestMatchScore = Math.max(bestMatchScore, 20);
+                bestMatch = `Faculty partial: ${w1} ↔ ${w2}`;
+              }
+            }
           }
         }
       });
       
-      // Check against project tech stack (high priority - only if exact or very close match)
-      if (bestMatchScore < 20) {
-        projectTechStack.forEach((techSkill: string) => {
-          if (techSkill === studentInterest || 
-              (techSkill.length > 2 && studentInterest.length > 2 && 
-               (techSkill.includes(studentInterest) || studentInterest.includes(techSkill)))) {
-            if (20 > bestMatchScore) {
-              bestMatchScore = 20;
-              bestMatch = `Tech: ${studentInterest} → ${techSkill}`;
+      // Check against project tech stack (high priority)
+      projectTechStack.forEach((techSkill: string) => {
+        // Exact match
+        if (techSkill === studentInterest) {
+          bestMatchScore = Math.max(bestMatchScore, 25);
+          bestMatch = `Tech exact: ${studentInterest}`;
+        }
+        // Substring match
+        else if (techSkill.includes(studentInterest) || studentInterest.includes(techSkill)) {
+          bestMatchScore = Math.max(bestMatchScore, 20);
+          bestMatch = `Tech contains: ${studentInterest} ↔ ${techSkill}`;
+        }
+        // Word-level partial match for technologies
+        else if (studentInterest.length >= 2 && techSkill.length >= 2) {
+          const words1 = studentInterest.split(/[\s-_]+/);
+          const words2 = techSkill.split(/[\s-_]+/);
+          for (const w1 of words1) {
+            for (const w2 of words2) {
+              if (w1.length >= 2 && w2.length >= 2 && (w1.includes(w2) || w2.includes(w1))) {
+                bestMatchScore = Math.max(bestMatchScore, 15);
+                bestMatch = `Tech partial: ${w1} ↔ ${w2}`;
+              }
             }
           }
-        });
-      }
+        }
+      });
       
-      // Check against project title (medium priority - only if meaningful match)
-      if (bestMatchScore < 15 && studentInterest.length > 3) {
+      // Check against project title (medium priority)
+      if (studentInterest.length >= 3) {
         if (projectTitle.includes(studentInterest)) {
-          bestMatchScore = 15;
+          bestMatchScore = Math.max(bestMatchScore, 15);
           bestMatch = `Title: ${studentInterest}`;
         }
       }
       
-      // Check against project description (lowest priority - only if meaningful match)
-      if (bestMatchScore < 10 && studentInterest.length > 4) {
+      // Check against project description (lower priority)
+      if (studentInterest.length >= 3) {
         if (projectDescription.includes(studentInterest)) {
-          bestMatchScore = 10;
+          bestMatchScore = Math.max(bestMatchScore, 10);
           bestMatch = `Description: ${studentInterest}`;
         }
       }
@@ -181,11 +209,11 @@ export default function StudentDashboard() {
         matchedInterests.push(bestMatch);
         console.log(`Interest "${studentInterest}" - best match: ${bestMatch} (${bestMatchScore} points)`);
       } else {
-        console.log(`Interest "${studentInterest}" - no meaningful match found`);
+        console.log(`Interest "${studentInterest}" - no match found`);
       }
     });
     
-    matchScore += Math.min(interestMatches, 50); // Cap at 50 points for interests (more restrictive)
+    matchScore += Math.min(interestMatches, 60); // Increased cap to 60 points for interests
     
     // Department match bonus (small)
     if (faculty?.department_id === student.department_id) {
@@ -193,8 +221,8 @@ export default function StudentDashboard() {
       console.log('Department match bonus added');
     }
     
-    // No random component - scores should be deterministic
-    matchScore = Math.max(15, Math.min(90, matchScore));
+    // Final score normalization
+    matchScore = Math.max(20, Math.min(95, matchScore));
     
     console.log('Matched interests:', matchedInterests);
     console.log(`Final match score for "${project.topic}": ${Math.round(matchScore)}%`);
@@ -378,8 +406,8 @@ export default function StudentDashboard() {
           console.log(`- ${p.title}: ${p.match_percentage}%`);
         });
         
-        // More restrictive: Only projects with 70%+ match are "recommended"
-        const recommendedThreshold = 70;
+        // More lenient: Only projects with 50%+ match are "recommended"
+        const recommendedThreshold = 50;
         const recommendedProjects = projects.filter(p => {
           const score = p.match_percentage || 0;
           const isRecommended = score >= recommendedThreshold;
@@ -504,12 +532,12 @@ export default function StudentDashboard() {
 
           projects.sort((a, b) => (b.match_percentage || 0) - (a.match_percentage || 0));
           
-          // Use same threshold as main section - projects with 70%+ match are "recommended"
-          const recommendedThreshold = 70;
+          // Use lower threshold - projects with 50%+ match are "recommended"
+          const recommendedThreshold = 50;
           const recommendedProjects = projects.filter(p => (p.match_percentage || 0) >= recommendedThreshold);
           const allOtherProjects = projects; // All projects for "All Research Openings" section
           
-          console.log('Fallback - Recommended projects (70%+ match):', recommendedProjects.length);
+          console.log('Fallback - Recommended projects (50%+ match):', recommendedProjects.length);
           console.log('Fallback - All available projects:', allOtherProjects.length);
           
           setRecommendedProjects(recommendedProjects);

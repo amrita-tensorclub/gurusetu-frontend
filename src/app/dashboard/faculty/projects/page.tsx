@@ -218,7 +218,7 @@ export default function FacultyProjects() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 placeholder-gray-500">
       {/* Header */}
       <header className="bg-[#8B1538] text-white px-4 py-4">
         <div className="flex items-center justify-between">
