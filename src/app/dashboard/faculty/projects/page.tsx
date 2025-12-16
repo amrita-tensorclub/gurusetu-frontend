@@ -576,11 +576,11 @@ export default function FacultyProjects() {
                   </div>
                   <div className="mt-4 flex items-center justify-between">
                     <div className="text-sm">
-                      <span className="text-gray-600 font-bold">Students: </span>
                       <button 
                         onClick={() => handleShowAcceptedStudents(project)}
                         className="text-blue-600 hover:text-blue-800 font-semibold hover:underline"
                       >
+                      <span className="text-gray-600 font-bold ">Students: </span>
                         {(project as any).accepted_count || 0}
                       </button>
                       <span className="text-gray-600"> / {project.max_students}</span>

@@ -11,6 +11,7 @@ interface Student {
   roll_number: string;
   year: number;
   area_of_interest: string | null;
+  phone_number: string | null; // ✅ ADD THIS
   department: {
     name: string;
     code: string;
@@ -47,6 +48,9 @@ export default function FacultyDashboard() {
   const [activeFilters, setActiveFilters] = useState<string[]>(['AI in Healthcare']);
   const [isLoading, setIsLoading] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [profileSource, setProfileSource] = useState<'accepted' | 'applications' | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+
 
   const interestFilters = [
     'AI in Healthcare',
@@ -395,12 +399,12 @@ export default function FacultyDashboard() {
                       
                       {/* Action Buttons */}
                       <div className="flex space-x-3">
-                        <button className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
-                          View Profile
-                        </button>
-                        <button className="flex-1 py-2 px-4 bg-[#8B1538] text-white rounded-lg hover:bg-[#7A1230] transition-colors">
-                          Shortlist
-                        </button>
+                        <button
+                            onClick={() => setSelectedStudent(student)}
+                            className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                          >
+                            View Profile
+                          </button>
                       </div>
                     </div>
                   </div>
@@ -443,6 +447,89 @@ export default function FacultyDashboard() {
           </div>
         </div>
       </div>
+      {/* STUDENT PROFILE MODAL */}
+{selectedStudent && (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 text-black">
+    <div className="bg-white rounded-2xl max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
+
+      {/* Header */}
+      <div className="flex justify-between items-center mb-4 text-red-600 ">
+        <h2 className="text-xl font-bold text-red-700">Student Profile</h2>
+        <button
+          onClick={() => setSelectedStudent(null)}
+          className="text-gray-500 hover:text-gray-800 text-xl"
+        >
+          ✕
+        </button>
+      </div>
+
+      {/* Student Info */}
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">
+            {selectedStudent.name}
+          </h3>
+          <p className="text-gray-600">
+            <span className='text-black'> Roll No</span> : {selectedStudent.roll_number}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <p className="text-sm text-gray-500">Email</p>
+            <p className="font-medium">{selectedStudent.user.email}</p>
+          </div>
+
+          <div>
+            <p className="text-sm text-gray-500">Username</p>
+            <p className="font-medium">{selectedStudent.user.username}</p>
+          </div>
+
+          <div>
+            <p className="text-sm text-gray-500">Year</p>
+            <p className="font-medium">{selectedStudent.year}</p>
+          </div>
+
+          <div>
+            <p className="text-sm text-gray-500">Department</p>
+            <p className="font-medium">
+              {selectedStudent.department.name} ({selectedStudent.department.code})
+            </p>
+          </div>
+        </div>
+
+        <div>
+          <p className="text-sm text-gray-500">Area of Interest</p>
+          <p className="font-medium">
+            {selectedStudent.area_of_interest || 'Not specified'}
+          </p>
+        </div>
+        <div>
+  <p className="text-sm text-gray-500">Mobile Number</p>
+  <p className="font-medium">
+    {selectedStudent.phone_number || 'Not provided'}
+  </p>
+</div>
+
+      </div>
+
+      {/* Actions */}
+      <div className="mt-6 flex space-x-3">
+        <button
+          onClick={() => setSelectedStudent(null)}
+          className="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+        >
+          Close
+        </button>
+        <button
+          className="flex-1 py-2 bg-[#8B1538] text-white rounded-lg hover:bg-[#7A1230]"
+        >
+          Shortlist Student
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
       {/* Navigation Menu */}
       <FacultyNavigationMenu 
