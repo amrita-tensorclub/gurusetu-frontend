@@ -71,6 +71,9 @@ export default function StudentDashboard() {
   const [allProjects, setAllProjects] = useState<ResearchProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [appliedProjects, setAppliedProjects] = useState<Set<string>>(new Set());
+  const [applicationStatuses, setApplicationStatuses] = useState<{[key: string]: string}>({});
+  const [isApplying, setIsApplying] = useState<string | null>(null);
 
   useEffect(() => {
     loadStudentData();
@@ -79,8 +82,74 @@ export default function StudentDashboard() {
   useEffect(() => {
     if (studentData) {
       loadProjects();
+      loadAppliedProjects();
     }
   }, [studentData]);
+
+  // Load student's applied projects to show button states
+  const loadAppliedProjects = async () => {
+    if (!studentData) return;
+    
+    try {
+      const { data: applications, error } = await supabase
+        .from('student_applications')
+        .select('project_opening_id, status')
+        .eq('student_id', studentData.id);
+      
+      if (applications && !error) {
+        const appliedIds = new Set(applications.map(app => app.project_opening_id));
+        const statuses = applications.reduce((acc, app) => {
+          acc[app.project_opening_id] = app.status;
+          return acc;
+        }, {} as {[key: string]: string});
+        
+        setAppliedProjects(appliedIds);
+        setApplicationStatuses(statuses);
+      }
+    } catch (error) {
+      console.error('Error loading applied projects:', error);
+    }
+  };
+
+  // Handle project application
+  const handleApplyToProject = async (projectId: string, openingType: 'project' | 'research' = 'project') => {
+    if (!studentData || isApplying) return;
+    
+    setIsApplying(projectId);
+    
+    try {
+      const { data, error } = await supabase
+        .from('student_applications')
+        .insert({
+          student_id: studentData.id,
+          project_opening_id: projectId,
+          opening_type: openingType,
+          status: 'pending',
+          application_message: ''
+        })
+        .select()
+        .single();
+      
+      if (error) {
+        // Check if already applied
+        if (error.code === '23505') { // Unique constraint violation
+          alert('You have already applied to this project!');
+        } else {
+          throw error;
+        }
+      } else {
+        alert('Application submitted successfully!');
+        // Update applied projects state
+        setAppliedProjects(prev => new Set([...prev, projectId]));
+        setApplicationStatuses(prev => ({ ...prev, [projectId]: 'pending' }));
+      }
+    } catch (error) {
+      console.error('Error applying to project:', error);
+      alert('Failed to submit application. Please try again.');
+    } finally {
+      setIsApplying(null);
+    }
+  };
 
   // Enhanced interest-based matching algorithm
   const calculateMatchPercentage = (project: any, student: StudentData | null): number => {
@@ -565,62 +634,100 @@ export default function StudentDashboard() {
     );
   }
 
-  const ProjectCard = ({ project, isRecommended = false }: { project: ResearchProject; isRecommended?: boolean }) => (
-    <div className="bg-white rounded-2xl border border-yellow-200 shadow-sm p-4 mb-4 relative">
-      {/* Match Badge */}
-      {/* {isRecommended && project.match_percentage && (
-        <div className="absolute -top-2 -right-2 bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-bold">
-          {project.match_percentage}% Match
-        </div>
-      )} */}
-      
-      {/* Project Content */}
-      <div className="space-y-3">
-        {/* Title */}
-        <h3 className="font-bold text-gray-900 text-lg leading-tight">{project.title}</h3>
-        
-        {/* Faculty Info */}
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-[#8B1538] rounded-full flex items-center justify-center">
-            <span className="text-white text-sm font-bold">
-              {project.faculty.user.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-            </span>
+  const ProjectCard = ({ project, isRecommended = false }: { project: ResearchProject; isRecommended?: boolean }) => {
+    const hasApplied = appliedProjects.has(project.id);
+    const applicationStatus = applicationStatuses[project.id];
+    const isCurrentlyApplying = isApplying === project.id;
+    
+    const getButtonText = () => {
+      if (isCurrentlyApplying) return 'Applying...';
+      if (applicationStatus === 'accepted') return 'Accepted ✓';
+      if (applicationStatus === 'rejected') return 'Rejected ✗';
+      if (applicationStatus === 'pending') return 'Applied (Pending)';
+      if (hasApplied) return 'Applied ✓';
+      return 'Apply';
+    };
+    
+    const getButtonStyle = () => {
+      if (applicationStatus === 'accepted') {
+        return 'bg-green-100 text-green-700 border-2 border-green-300 cursor-not-allowed';
+      }
+      if (applicationStatus === 'rejected') {
+        return 'bg-red-100 text-red-700 border-2 border-red-300 cursor-not-allowed';
+      }
+      if (applicationStatus === 'pending') {
+        return 'bg-yellow-100 text-yellow-700 border-2 border-yellow-300 cursor-not-allowed';
+      }
+      if (hasApplied) {
+        return 'bg-gray-100 text-gray-700 border-2 border-gray-300 cursor-not-allowed';
+      }
+      if (isCurrentlyApplying) {
+        return 'bg-gray-100 text-gray-500 cursor-not-allowed';
+      }
+      return 'bg-[#8B1538] text-white hover:bg-[#7A1230]';
+    };
+    
+    return (
+      <div className="bg-white rounded-2xl border border-yellow-200 shadow-sm p-4 mb-4 relative">
+        {/* Match Badge */}
+        {/* {isRecommended && project.match_percentage && (
+          <div className="absolute -top-2 -right-2 bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+            {project.match_percentage}% Match
           </div>
-          <div>
-            <p className="font-medium text-gray-900 text-sm">{project.faculty.user.full_name}</p>
-            <p className="text-gray-600 text-xs">{project.faculty.department?.name}</p>
+        )} */}
+        
+        {/* Project Content */}
+        <div className="space-y-3">
+          {/* Title */}
+          <h3 className="font-bold text-gray-900 text-lg leading-tight">{project.title}</h3>
+          
+          {/* Faculty Info */}
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-[#8B1538] rounded-full flex items-center justify-center">
+              <span className="text-white text-sm font-bold">
+                {project.faculty.user.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+              </span>
+            </div>
+            <div>
+              <p className="font-medium text-gray-900 text-sm">{project.faculty.user.full_name}</p>
+              <p className="text-gray-600 text-xs">{project.faculty.department?.name}</p>
+            </div>
           </div>
+          
+          {/* Skills Tags */}
+          <div className="flex flex-wrap gap-2">
+            {project.skills_required.slice(0, 4).map((skill, index) => (
+              <span 
+                key={index}
+                className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium"
+              >
+                {skill.charAt(0).toUpperCase() + skill.slice(1)}
+              </span>
+            ))}
+            {project.skills_required.length > 4 && (
+              <span className="px-3 py-1 bg-gray-200 text-gray-600 rounded-full text-xs font-medium">
+                +{project.skills_required.length - 4} more
+              </span>
+            )}
+          </div>
+          
+          {/* Description */}
+          <p className="text-gray-600 text-sm leading-relaxed">
+            {project.description}
+          </p>
+          
+          {/* Apply Button */}
+          <button 
+            onClick={() => handleApplyToProject(project.id)}
+            disabled={hasApplied || isCurrentlyApplying}
+            className={`w-full py-3 rounded-lg font-semibold transition-colors ${getButtonStyle()}`}
+          >
+            {getButtonText()}
+          </button>
         </div>
-        
-        {/* Skills Tags */}
-        <div className="flex flex-wrap gap-2">
-          {project.skills_required.slice(0, 4).map((skill, index) => (
-            <span 
-              key={index}
-              className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium"
-            >
-              {skill.charAt(0).toUpperCase() + skill.slice(1)}
-            </span>
-          ))}
-          {project.skills_required.length > 4 && (
-            <span className="px-3 py-1 bg-gray-200 text-gray-600 rounded-full text-xs font-medium">
-              +{project.skills_required.length - 4} more
-            </span>
-          )}
-        </div>
-        
-        {/* Description */}
-        <p className="text-gray-600 text-sm leading-relaxed">
-          {project.description}
-        </p>
-        
-        {/* Apply Button */}
-        <button className="w-full bg-[#8B1538] text-white py-3 rounded-lg font-semibold hover:bg-[#7A1230] transition-colors">
-          Apply
-        </button>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
