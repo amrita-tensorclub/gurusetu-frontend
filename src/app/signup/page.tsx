@@ -21,22 +21,24 @@ export default function SignupPage() {
     designation: '',
     areaOfInterest: ''
   });
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const departments = [
-    { id: 'aerospace', name: 'Aerospace Engineering' },
-    { id: 'ai-ds', name: 'Artificial Intelligence & Data Science' },
-    { id: 'chemical', name: 'Chemical Engineering' },
-    { id: 'civil', name: 'Civil Engineering' },
-    { id: 'cs-ai', name: 'Computer science and artificial intelligence' },
-    { id: 'cse', name: 'Computer Science & Engineering (including AI & ML specializations)' },
-    { id: 'cce', name: 'Computer & Communication Engineering' },
-    { id: 'eee', name: 'Electrical & Electronics Engineering' },
-    { id: 'ece', name: 'Electronics & Communication Engineering' },
-    { id: 'mechanical', name: 'Mechanical Engineering' },
-    { id: 'robotics', name: 'Robotics & Automation' }
-  ];
+  useEffect(() => {
+    fetchDepartments();
+  }, []);
+
+  const fetchDepartments = async () => {
+    const { data, error } = await supabase
+      .from('departments')
+      .select('*')
+      .order('name');
+    
+    if (data) {
+      setDepartments(data);
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -112,11 +114,11 @@ export default function SignupPage() {
       localStorage.setItem('user', JSON.stringify(data.user));
       localStorage.setItem('userRole', activeTab);
       
-      // Redirect to welcome page
+      // Redirect to dashboard
       if (activeTab === 'student') {
-        router.push('/welcome/student');
+        router.push('/dashboard/student');
       } else {
-        router.push('/welcome/faculty');
+        router.push('/dashboard/faculty');
       }
 
     } catch (error) {
@@ -131,21 +133,26 @@ export default function SignupPage() {
       {/* Header */}
       <div className="bg-[#8B1538] h-16 flex items-center justify-between px-4">
         <Link href="/login" className="text-white text-lg">
-          Already have an account? Sign In
+          ←
         </Link>
+        <div className="flex items-center space-x-2 text-white">
+          <div className="flex space-x-1">
+            <div className="w-1 h-1 bg-white rounded-full"></div>
+            <div className="w-1 h-1 bg-white rounded-full"></div>
+            <div className="w-1 h-1 bg-white rounded-full"></div>
+            <div className="w-1 h-1 bg-white rounded-full"></div>
+          </div>
+          <div className="w-4 h-4 border border-white rounded-sm"></div>
+          <div className="w-4 h-4 bg-white rounded-sm"></div>
+          <span className="text-sm font-medium">10:30</span>
+        </div>
       </div>
 
       {/* Main Content */}
       <div className="flex-1 px-8 pt-8 pb-8 overflow-y-auto">
         {/* Logo and Title */}
         <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 bg-[#8B1538] rounded-2xl flex items-center justify-center">
-              <span className="text-white font-bold text-2xl">G</span>
-            </div>
-          </div>
-          <h1 className="text-3xl font-bold text-[#8B1538] mb-2">Guru Setu</h1>
-          <p className="text-lg text-[#8B1538] font-semibold mb-2">Bridge to the Guru</p>
+          <h1 className="text-3xl font-bold text-[#8B1538] mb-2">Create Account</h1>
           <p className="text-gray-700 text-sm">
             Join Guru Setu for Research Excellence
           </p>
@@ -161,7 +168,7 @@ export default function SignupPage() {
                 : 'bg-[#D4AF37] text-white hover:bg-[#B8941F]'
             }`}
           >
-            Join as Student
+            Student Signup
           </button>
           <button
             onClick={() => setActiveTab('faculty')}
@@ -171,7 +178,7 @@ export default function SignupPage() {
                 : 'bg-[#D4AF37] text-white hover:bg-[#B8941F]'
             }`}
           >
-            Join as Faculty
+            Faculty Signup
           </button>
         </div>
 
@@ -325,6 +332,16 @@ export default function SignupPage() {
             )}
           </button>
         </form>
+
+        {/* Login Link */}
+        <div className="text-center mt-8">
+          <p className="text-gray-600 text-sm">
+            Already have an account?{' '}
+            <Link href="/login" className="text-[#8B1538] font-medium hover:underline">
+              Sign In
+            </Link>
+          </p>
+        </div>
 
         {/* Bottom Text */}
         <div className="text-center mt-8 text-gray-500 text-sm">
