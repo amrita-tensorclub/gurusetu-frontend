@@ -3,11 +3,15 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { supabase, Department } from '@/lib/supabase';
+import api from '@/lib/api'; // Import our bridge
 
 export default function SignupPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'student' | 'faculty'>('student');
+  
+  // State for Departments (Fetched from API)
+  const [departments, setDepartments] = useState<{id: string, name: string, code: string}[]>([]);
+  
   const [formData, setFormData] = useState({
     email: '',
     username: '',
@@ -21,24 +25,19 @@ export default function SignupPage() {
     designation: '',
     areaOfInterest: ''
   });
-  const [departments, setDepartments] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // 1. Fetch Departments on Load
   useEffect(() => {
-    fetchDepartments();
+    const loadDepts = async () => {
+      const data = await api.departments.list();
+      // Handle array or object response structure safely
+      if (Array.isArray(data)) setDepartments(data);
+      else if (data.departments) setDepartments(data.departments);
+    };
+    loadDepts();
   }, []);
-
-  const fetchDepartments = async () => {
-    const { data, error } = await supabase
-      .from('departments')
-      .select('*')
-      .order('name');
-    
-    if (data) {
-      setDepartments(data);
-    }
-  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -76,55 +75,32 @@ export default function SignupPage() {
     e.preventDefault();
     setError('');
     
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setIsLoading(true);
 
-    try {
-      const response = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          username: formData.username,
-          password: formData.password,
-          name: formData.name,
-          rollNumber: formData.rollNumber,
-          employeeId: formData.employeeId,
-          departmentId: formData.departmentId,
-          year: formData.year,
-          designation: formData.designation,
-          areaOfInterest: formData.areaOfInterest,
-          role: activeTab
-        }),
-      });
+    // 2. Use API Bridge
+    const response = await api.auth.signup({
+       ...formData,
+       role: activeTab
+    });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.error || 'Registration failed');
-        return;
-      }
-
-      // Store user info for demo
-      localStorage.setItem('user', JSON.stringify(data.user));
-      localStorage.setItem('userRole', activeTab);
-      
-      // Redirect to dashboard
-      if (activeTab === 'student') {
-        router.push('/dashboard/student');
-      } else {
-        router.push('/dashboard/faculty');
-      }
-
-    } catch (error) {
-      setError('Registration failed. Please try again.');
-    } finally {
-      setIsLoading(false);
+    if (response.error) {
+       setError(response.error);
+       setIsLoading(false);
+    } else {
+       // Success! Store user and redirect
+       // Note: Response usually contains { user: ... }
+       if (response.user) {
+         localStorage.setItem('currentUser', JSON.stringify(response.user));
+       }
+       
+       // 3. Redirect to the correct Dashboard URL
+       if (activeTab === 'student') {
+         router.push('/dashboard/student');
+       } else {
+         router.push('/dashboard/faculty');
+       }
     }
   };
 
@@ -133,33 +109,25 @@ export default function SignupPage() {
       {/* Header */}
       <div className="bg-[#8B1538] h-16 flex items-center justify-between px-4">
         <Link href="/login" className="text-white text-lg">
-          ←
+          Already have an account? Sign In
         </Link>
-        <div className="flex items-center space-x-2 text-white">
-          <div className="flex space-x-1">
-            <div className="w-1 h-1 bg-white rounded-full"></div>
-            <div className="w-1 h-1 bg-white rounded-full"></div>
-            <div className="w-1 h-1 bg-white rounded-full"></div>
-            <div className="w-1 h-1 bg-white rounded-full"></div>
-          </div>
-          <div className="w-4 h-4 border border-white rounded-sm"></div>
-          <div className="w-4 h-4 bg-white rounded-sm"></div>
-          <span className="text-sm font-medium">10:30</span>
-        </div>
       </div>
 
       {/* Main Content */}
       <div className="flex-1 px-8 pt-8 pb-8 overflow-y-auto">
         {/* Logo and Title */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-[#8B1538] mb-2">Create Account</h1>
-          <p className="text-gray-700 text-sm">
-            Join Guru Setu for Research Excellence
-          </p>
+          <div className="flex justify-center mb-4">
+            <div className="w-16 h-16 bg-[#8B1538] rounded-2xl flex items-center justify-center">
+              <span className="text-white font-bold text-2xl">G</span>
+            </div>
+          </div>
+          <h1 className="text-3xl font-bold text-[#8B1538] mb-2">Guru Setu</h1>
+          <p className="text-lg text-[#8B1538] font-semibold mb-2">Bridge to the Guru</p>
         </div>
 
         {/* Role Toggle Buttons */}
-        <div className="flex mb-8 space-x-1">
+        <div className="flex mb-8 space-x-1 justify-center max-w-md mx-auto">
           <button
             onClick={() => setActiveTab('student')}
             className={`flex-1 py-3 px-6 rounded-full text-sm font-medium transition-colors ${
@@ -168,7 +136,7 @@ export default function SignupPage() {
                 : 'bg-[#D4AF37] text-white hover:bg-[#B8941F]'
             }`}
           >
-            Student Signup
+            Join as Student
           </button>
           <button
             onClick={() => setActiveTab('faculty')}
@@ -178,33 +146,35 @@ export default function SignupPage() {
                 : 'bg-[#D4AF37] text-white hover:bg-[#B8941F]'
             }`}
           >
-            Faculty Signup
+            Join as Faculty
           </button>
         </div>
 
         {/* Signup Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Email */}
-          <input
-            type="email"
-            name="email"
-            placeholder="Email Address"
-            value={formData.email}
-            onChange={handleInputChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#8B1538] focus:border-transparent"
-            required
-          />
+        <form onSubmit={handleSubmit} className="space-y-4 max-w-2xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+             {/* Email */}
+            <input
+                type="email"
+                name="email"
+                placeholder="Email Address"
+                value={formData.email}
+                onChange={handleInputChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#8B1538]"
+                required
+            />
 
-          {/* Username */}
-          <input
-            type="text"
-            name="username"
-            placeholder="Username"
-            value={formData.username}
-            onChange={handleInputChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#8B1538] focus:border-transparent"
-            required
-          />
+            {/* Username */}
+            <input
+                type="text"
+                name="username"
+                placeholder="Username"
+                value={formData.username}
+                onChange={handleInputChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#8B1538]"
+                required
+            />
+          </div>
 
           {/* Full Name */}
           <input
@@ -213,70 +183,72 @@ export default function SignupPage() {
             placeholder="Full Name"
             value={formData.name}
             onChange={handleInputChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#8B1538] focus:border-transparent"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#8B1538]"
             required
           />
 
           {/* Role-specific fields */}
-          {activeTab === 'student' ? (
-            <>
-              <input
-                type="text"
-                name="rollNumber"
-                placeholder="Roll Number"
-                value={formData.rollNumber}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#8B1538] focus:border-transparent"
-                required
-              />
-              <select
-                name="year"
-                value={formData.year}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#8B1538] focus:border-transparent"
-                required
-              >
-                <option value="">Select Year</option>
-                <option value={1}>1st Year</option>
-                <option value={2}>2nd Year</option>
-                <option value={3}>3rd Year</option>
-                <option value={4}>4th Year</option>
-                <option value={5}>5th Year</option>
-              </select>
-            </>
-          ) : (
-            <>
-              <input
-                type="text"
-                name="employeeId"
-                placeholder="Employee ID"
-                value={formData.employeeId}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#8B1538] focus:border-transparent"
-                required
-              />
-              <input
-                type="text"
-                name="designation"
-                placeholder="Designation (e.g., Assistant Professor)"
-                value={formData.designation}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#8B1538] focus:border-transparent"
-              />
-            </>
-          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {activeTab === 'student' ? (
+                <>
+                <input
+                    type="text"
+                    name="rollNumber"
+                    placeholder="Roll Number"
+                    value={formData.rollNumber}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#8B1538]"
+                    required
+                />
+                <select
+                    name="year"
+                    value={formData.year}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-black focus:outline-none focus:ring-2 focus:ring-[#8B1538]"
+                    required
+                >
+                    <option value="">Select Year</option>
+                    <option value={1}>1st Year</option>
+                    <option value={2}>2nd Year</option>
+                    <option value={3}>3rd Year</option>
+                    <option value={4}>4th Year</option>
+                </select>
+                </>
+            ) : (
+                <>
+                <input
+                    type="text"
+                    name="employeeId"
+                    placeholder="Employee ID"
+                    value={formData.employeeId}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#8B1538]"
+                    required
+                />
+                <input
+                    type="text"
+                    name="designation"
+                    placeholder="Designation"
+                    value={formData.designation}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#8B1538]"
+                />
+                </>
+            )}
+          </div>
 
           {/* Department */}
           <select
             name="departmentId"
             value={formData.departmentId}
             onChange={handleInputChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#8B1538] focus:border-transparent"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-black focus:outline-none focus:ring-2 focus:ring-[#8B1538]"
             required
           >
             <option value="">Select Department</option>
             {departments.map((dept) => (
-              <option key={dept.id} value={dept.id}>
+              // Use dept.code if that is what your backend expects for ID mapping, or dept.id
+              <option key={dept.id} value={dept.code || dept.id}>
                 {dept.name}
               </option>
             ))}
@@ -289,34 +261,36 @@ export default function SignupPage() {
             value={formData.areaOfInterest}
             onChange={handleInputChange}
             rows={3}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#8B1538] focus:border-transparent resize-none"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#8B1538] resize-none"
           />
 
-          {/* Password */}
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            value={formData.password}
-            onChange={handleInputChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#8B1538] focus:border-transparent"
-            required
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+             {/* Password */}
+            <input
+                type="password"
+                name="password"
+                placeholder="Password"
+                value={formData.password}
+                onChange={handleInputChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#8B1538]"
+                required
+            />
 
-          {/* Confirm Password */}
-          <input
-            type="password"
-            name="confirmPassword"
-            placeholder="Confirm Password"
-            value={formData.confirmPassword}
-            onChange={handleInputChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#8B1538] focus:border-transparent"
-            required
-          />
+            {/* Confirm Password */}
+            <input
+                type="password"
+                name="confirmPassword"
+                placeholder="Confirm Password"
+                value={formData.confirmPassword}
+                onChange={handleInputChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#8B1538]"
+                required
+            />
+          </div>
 
           {/* Error Message */}
           {error && (
-            <div className="text-red-600 text-sm text-center">{error}</div>
+            <div className="text-red-600 text-sm text-center font-bold bg-red-50 p-2 rounded">{error}</div>
           )}
 
           {/* Submit Button */}
@@ -333,19 +307,9 @@ export default function SignupPage() {
           </button>
         </form>
 
-        {/* Login Link */}
-        <div className="text-center mt-8">
-          <p className="text-gray-600 text-sm">
-            Already have an account?{' '}
-            <Link href="/login" className="text-[#8B1538] font-medium hover:underline">
-              Sign In
-            </Link>
-          </p>
-        </div>
-
         {/* Bottom Text */}
         <div className="text-center mt-8 text-gray-500 text-sm">
-          Powered by <span className="font-medium">[Institution Name]</span>
+          Powered by <span className="font-medium">Guru Setu</span>
         </div>
       </div>
     </div>

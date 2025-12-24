@@ -1,61 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcrypt';
-import { supabaseAdmin } from '@/lib/supabase';
+import { driver } from '@/lib/neo4j'; // ✅ Use Neo4j Driver
+import { v4 as uuidv4 } from 'uuid'; // You might need to install uuid: npm install uuid @types/uuid
 
 export async function POST(request: NextRequest) {
+  const session = driver.session();
+  
   try {
-    if (!supabaseAdmin) {
-      return NextResponse.json({ error: 'Database not available' }, { status: 500 });
-    }
-
     const body = await request.json();
     const {
       email,
       username,
       password,
       name,
-      rollNumber,
-      employeeId,
+      rollNumber, // For Student
+      employeeId, // For Faculty
       departmentId,
-      year,
-      designation,
+      year, // For Student
+      designation, // For Faculty
       areaOfInterest,
       role
     } = body;
 
-    // Validate required fields
+    // 1. Basic Validation
     if (!email || !username || !password || !name || !departmentId || !role) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
     if (role === 'student' && !rollNumber) {
-      return NextResponse.json(
-        { error: 'Roll number is required for students' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Roll number is required for students' }, { status: 400 });
     }
 
     if (role === 'faculty' && !employeeId) {
-      return NextResponse.json(
-        { error: 'Employee ID is required for faculty' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Employee ID is required for faculty' }, { status: 400 });
     }
 
-    // Hash password
+    // 2. Hash Password
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Map department names to IDs or create department mapping
+    // 3. Department Mapping (Same logic as yours)
     const departmentMapping: { [key: string]: string } = {
       'aerospace': 'Aerospace Engineering',
       'ai-ds': 'Artificial Intelligence & Data Science',
       'chemical': 'Chemical Engineering',
       'civil': 'Civil Engineering',
       'cs-ai': 'Computer science and artificial intelligence',
-      'cse': 'Computer Science & Engineering (including AI & ML specializations)',
+      'cse': 'Computer Science & Engineering',
       'cce': 'Computer & Communication Engineering',
       'eee': 'Electrical & Electronics Engineering',
       'ece': 'Electronics & Communication Engineering',
@@ -63,118 +53,101 @@ export async function POST(request: NextRequest) {
       'robotics': 'Robotics & Automation'
     };
 
-    // Get or create department
-    let finalDepartmentId = departmentId;
-    if (departmentMapping[departmentId]) {
-      // Check if department exists, if not create it
-      const { data: existingDept, error: deptCheckError } = await supabaseAdmin
-        .from('departments')
-        .select('id')
-        .eq('name', departmentMapping[departmentId])
-        .single();
+    const deptName = departmentMapping[departmentId] || departmentId; // Fallback to ID if not in map
+    const deptCode = departmentId.toUpperCase();
 
-      if (existingDept) {
-        finalDepartmentId = existingDept.id;
-      } else {
-        // Create new department
-        const { data: newDept, error: createDeptError } = await supabaseAdmin
-          .from('departments')
-          .insert({
-            name: departmentMapping[departmentId],
-            code: departmentId.toUpperCase()
+    // 4. Create User Transaction
+    // We use a transaction to ensure User + Profile + Department links are created atomically.
+    const result = await session.executeWrite(async (tx) => {
+      
+      // A. Check if user exists
+      const checkUser = await tx.run(`
+        MATCH (u:User)
+        WHERE u.email = $email OR u.username = $username
+        RETURN u
+      `, { email, username });
+
+      if (checkUser.records.length > 0) {
+        throw new Error('Email or username already exists');
+      }
+
+      // B. Create User Node
+      const userId = uuidv4();
+      await tx.run(`
+        CREATE (u:User {
+          id: $id,
+          email: $email,
+          username: $username,
+          password_hash: $passwordHash,
+          role: $role,
+          created_at: datetime()
+        })
+      `, { id: userId, email, username, passwordHash, role });
+
+      // C. Ensure Department Node Exists
+      // MERGE creates it if it doesn't exist, matches it if it does
+      await tx.run(`
+        MERGE (d:Department {code: $deptCode})
+        ON CREATE SET d.name = $deptName, d.id = randomUUID()
+      `, { deptCode, deptName });
+
+      // D. Create Specific Profile (Student or Faculty)
+      if (role === 'student') {
+        const studentId = uuidv4();
+        await tx.run(`
+          MATCH (u:User {id: $userId})
+          MATCH (d:Department {code: $deptCode})
+          CREATE (s:Student {
+            id: $studentId,
+            name: $name,
+            roll_number: $rollNumber,
+            year: $year,
+            area_of_interest: $areaOfInterest,
+            user_id: $userId
           })
-          .select('id')
-          .single();
-
-        if (createDeptError) {
-          console.error('Department creation error:', createDeptError);
-          return NextResponse.json(
-            { error: 'Failed to create department' },
-            { status: 500 }
-          );
-        }
-        
-        finalDepartmentId = newDept.id;
+          CREATE (u)-[:HAS_PROFILE]->(s)
+          CREATE (s)-[:BELONGS_TO]->(d)
+        `, { userId, deptCode, studentId, name, rollNumber, year: parseInt(year), areaOfInterest });
+      } 
+      else if (role === 'faculty') {
+        const facultyId = uuidv4();
+        await tx.run(`
+          MATCH (u:User {id: $userId})
+          MATCH (d:Department {code: $deptCode})
+          CREATE (f:Faculty {
+            id: $facultyId,
+            name: $name,
+            employee_id: $employeeId,
+            designation: $designation,
+            area_of_interest: $areaOfInterest,
+            user_id: $userId
+          })
+          CREATE (u)-[:HAS_PROFILE]->(f)
+          CREATE (f)-[:BELONGS_TO]->(d)
+        `, { userId, deptCode, facultyId, name, employeeId, designation, areaOfInterest });
       }
-    }
 
-    // Create user
-    const { data: userData, error: userError } = await supabaseAdmin
-      .from('users')
-      .insert({
-        email,
-        username,
-        password_hash: passwordHash,
-        role,
-        roll_number: role === 'student' ? rollNumber : null
-      })
-      .select()
-      .single();
-
-    if (userError) {
-      if (userError.code === '23505') {
-        return NextResponse.json(
-          { error: 'Email or username already exists' },
-          { status: 400 }
-        );
-      }
-      return NextResponse.json(
-        { error: 'Failed to create user' },
-        { status: 500 }
-      );
-    }
-
-    // Create role-specific record
-    if (role === 'student') {
-      const { error: studentError } = await supabaseAdmin
-        .from('students')
-        .insert({
-          user_id: userData.id,
-          name,
-          roll_number: rollNumber,
-          department_id: finalDepartmentId,
-          year: parseInt(year),
-          area_of_interest: areaOfInterest || null
-        });
-
-      if (studentError) {
-        return NextResponse.json(
-          { error: 'Failed to create student profile' },
-          { status: 500 }
-        );
-      }
-    } else {
-      const { error: facultyError } = await supabaseAdmin
-        .from('faculty')
-        .insert({
-          user_id: userData.id,
-          name,
-          employee_id: employeeId,
-          department_id: finalDepartmentId,
-          designation: designation || null,
-          area_of_interest: areaOfInterest || null
-        });
-
-      if (facultyError) {
-        return NextResponse.json(
-          { error: 'Failed to create faculty profile' },
-          { status: 500 }
-        );
-      }
-    }
-
-    // Return success (don't include password hash)
-    const { password_hash, ...safeUserData } = userData;
-    return NextResponse.json({
-      success: true,
-      user: safeUserData
+      return { userId, email, role, name };
     });
 
-  } catch (error) {
+    return NextResponse.json({
+      success: true,
+      user: result
+    });
+
+  } catch (error: any) {
     console.error('Signup error:', error);
+    
+    // Handle specific errors
+    if (error.message === 'Email or username already exists') {
+      return NextResponse.json({ error: error.message }, { status: 409 });
+    }
+
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error: ' + error.message },
       { status: 500 }
     );
+  } finally {
+    await session.close();
   }
 }
