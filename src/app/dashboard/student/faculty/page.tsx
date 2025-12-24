@@ -2,168 +2,57 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import api from '@/lib/api';
+import { useAuth } from '@/hooks/useAuth';
 
-interface Faculty {
-  id: string;
-  user_id: string;
-  name: string;
-  employee_id: string;
-  department_id: string;
-  designation: string;
-  cabin_block: string;
-  cabin_floor: number;
-  cabin_number: string;
-  area_of_interest: string;
-  office_hours: string;
-  pg_details: string;
-  phd_details: string;
-  phone_number: string;
-  ug_details: string;
-  department: {
-    id: string;
-    name: string;
-    code: string;
-  };
-  user: {
-    id: string;
-    email: string;
-    username: string;
-    role: string;
-  };
-}
-
-interface FilterState {
-  departments: string[];
-}
-
-export default function StudentFaculty() {
+export default function BrowseFaculty() {
   const router = useRouter();
-  const [faculty, setFaculty] = useState<Faculty[]>([]);
-  const [filteredFaculty, setFilteredFaculty] = useState<Faculty[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
+  const { user, loading: authLoading } = useAuth('student');
+  
+  const [facultyList, setFacultyList] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
-  const [filters, setFilters] = useState<FilterState>({
-    departments: []
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Filters
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDept, setSelectedDept] = useState('All');
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        // Parallel fetch for speed
+        const [facultyData, deptData] = await Promise.all([
+          api.student.getAllFaculty(),
+          api.departments.list()
+        ]);
+
+        if (facultyData.faculty) setFacultyList(facultyData.faculty);
+        
+        // Handle department data structure variations
+        if (Array.isArray(deptData)) setDepartments(deptData);
+        else if (deptData.departments) setDepartments(deptData.departments);
+
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (!authLoading) loadData();
+  }, [authLoading]);
+
+  // Filter Logic
+  const filteredFaculty = facultyList.filter(f => {
+    const matchesSearch = (f.name?.toLowerCase().includes(searchQuery.toLowerCase())) || 
+                          (f.area_of_interest?.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    const matchesDept = selectedDept === 'All' || f.department_code === selectedDept || f.department_name === selectedDept;
+
+    return matchesSearch && matchesDept;
   });
 
-  useEffect(() => {
-    loadFaculty();
-  }, []);
-
-  useEffect(() => {
-    filterFaculty();
-  }, [faculty, searchQuery, filters]);
-  const loadFaculty = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('faculty')
-        .select(`
-          *,
-          department:departments(id, name, code),
-          user:users(id, email, username, role)
-        `);
-
-      if (data && !error) {
-        setFaculty(data);
-        
-        // Extract unique departments
-        const uniqueDepts = data.reduce((acc: any[], curr) => {
-          if (curr.department && !acc.find(dept => dept.id === curr.department.id)) {
-            acc.push(curr.department);
-          }
-          return acc;
-        }, []);
-        setDepartments(uniqueDepts);
-      } else {
-        console.error('Error loading faculty:', error);
-        setFaculty([]);
-        setDepartments([]);
-      }
-    } catch (error) {
-      console.error('Error loading faculty:', error);
-      setFaculty([]);
-      setDepartments([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const filterFaculty = () => {
-    let filtered = faculty;
-
-    // Filter by search query
-    if (searchQuery) {
-      filtered = filtered.filter(f => 
-        f.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        f.department?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        f.designation.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    // Filter by departments
-    if (filters.departments.length > 0) {
-      filtered = filtered.filter(f => 
-        filters.departments.includes(f.department?.code || '')
-      );
-    }
-
-    setFilteredFaculty(filtered);
-  };
-
-  const handleFilterChange = (type: keyof FilterState, value: string) => {
-    setFilters(prev => ({
-      ...prev,
-      [type]: prev[type].includes(value) 
-        ? prev[type].filter(item => item !== value)
-        : [...prev[type], value]
-    }));
-  };
-
-  const FacultyCard = ({ faculty }: { faculty: Faculty }) => (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          {/* Profile Photo */}
-          <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center overflow-hidden">
-            <img 
-              src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=48&h=48&fit=crop&crop=face" 
-              alt={faculty.name}
-              className="w-full h-full object-cover"
-            />
-          </div>
-          
-          <div className="flex-1">
-            {/* Name */}
-            <h3 className="font-bold text-gray-900 text-base">{faculty.name}</h3>
-            
-            {/* Department and Designation */}
-            <p className="text-gray-600 text-sm mb-1">{faculty.department?.code} Dept.</p>
-            <p className="text-gray-500 text-xs">{faculty.designation}</p>
-            
-            {/* Office Hours if available */}
-            {faculty.office_hours && (
-              <p className="text-gray-500 text-xs mt-1">Office: {faculty.office_hours}</p>
-            )}
-          </div>
-        </div>
-        
-        {/* Dropdown Arrow */}
-        <button 
-          onClick={() => router.push(`/dashboard/student/faculty/${faculty.id}`)}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-      </div>
-    </div>
-  );
-
-  if (isLoading) {
+  if (authLoading || isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-[#8B1538] border-t-transparent rounded-full animate-spin"></div>
@@ -172,118 +61,92 @@ export default function StudentFaculty() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 relative">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-[#8B1538] text-white px-4 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <button 
-              onClick={() => router.back()}
-              className="p-1"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <h1 className="text-xl font-semibold">All Faculty</h1>
-          </div>
-          <button className="p-1">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+      <header className="bg-[#8B1538] text-white px-4 py-4 shadow-sm">
+        <div className="max-w-7xl mx-auto flex items-center gap-4">
+          <button onClick={() => router.back()} className="hover:bg-white/20 p-1 rounded">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
           </button>
+          <h1 className="text-xl font-bold">Browse Faculty</h1>
         </div>
       </header>
 
-      {/* Search Bar */}
-      <div className="bg-white px-4 py-4 border-b border-gray-200">
-        <div className="flex space-x-3">
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        
+        {/* Search & Filters */}
+        <div className="bg-white p-4 rounded-lg shadow-sm mb-8 flex flex-col md:flex-row gap-4">
           <div className="flex-1 relative">
-            <input
-              type="text"
-              placeholder="Search faculty by name or domain..."
+            <svg className="w-5 h-5 absolute left-3 top-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            <input 
+              type="text" 
+              placeholder="Search by name or research area..." 
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B1538]"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-3 pl-12 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#8B1538] focus:border-transparent"
             />
-            <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-          </div>
-          <button 
-            onClick={() => setShowFilters(!showFilters)}
-            className="px-4 py-3 border border-gray-300 rounded-lg bg-white flex items-center space-x-2 hover:bg-gray-50"
-          >
-            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.707A1 1 0 013 7V4z" />
-            </svg>
-            <span className="text-gray-600 font-medium">Filter</span>
-          </button>
-        </div>
-      </div>
-
-      <div className="px-4 py-4">
-        {/* Main Content */}
-        {filteredFaculty.length > 0 ? (
-          filteredFaculty.map((faculty) => (
-            <FacultyCard key={faculty.id} faculty={faculty} />
-          ))
-        ) : (
-          <div className="text-center py-16">
-            <div className="w-16 h-16 mx-auto mb-4 bg-gray-200 rounded-full flex items-center justify-center">
-              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No faculty found matching your criteria.</h3>
-          </div>
-        )}
-      </div>
-
-      {/* Filter Panel */}
-      {showFilters && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50 max-h-80 overflow-y-auto">
-          <div className="grid grid-cols-1 gap-6">
-            {/* Department Filter */}
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-3">Department</h3>
-              <div className="space-y-2">
-                {departments.map(dept => (
-                  <label key={dept.id} className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      checked={filters.departments.includes(dept.code)}
-                      onChange={() => handleFilterChange('departments', dept.code)}
-                      className="w-4 h-4 text-[#8B1538] border-gray-300 rounded focus:ring-[#8B1538]"
-                    />
-                    <span className="text-sm text-gray-700">{dept.code} - {dept.name}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
           </div>
           
-          {/* Close Filters */}
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <button 
-              onClick={() => setShowFilters(false)}
-              className="w-full bg-[#8B1538] text-white py-3 rounded-lg font-semibold hover:bg-[#7A1230] transition-colors"
-            >
-              Apply Filters
-            </button>
-          </div>
+          <select 
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8B1538] bg-white text-gray-700"
+            value={selectedDept}
+            onChange={(e) => setSelectedDept(e.target.value)}
+          >
+            <option value="All">All Departments</option>
+            {departments.map((d: any) => (
+              <option key={d.code} value={d.code}>{d.name}</option>
+            ))}
+          </select>
         </div>
-      )}
-      
-      {/* Filter Backdrop */}
-      {showFilters && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40"
-          onClick={() => setShowFilters(false)}
-        />
-      )}
+
+        {/* Results Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredFaculty.length === 0 ? (
+            <div className="col-span-full text-center py-12 text-gray-500">
+              No faculty members found matching your criteria.
+            </div>
+          ) : (
+            filteredFaculty.map((f) => (
+              <div key={f.id || Math.random()} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+                <div className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center text-2xl font-bold text-gray-400">
+                      {f.name?.charAt(0) || 'F'}
+                    </div>
+                    <span className="bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded font-medium">
+                      {f.department_code}
+                    </span>
+                  </div>
+                  
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">{f.name}</h3>
+                  <p className="text-sm text-[#8B1538] font-medium mb-3">{f.designation || 'Professor'}</p>
+                  
+                  <div className="space-y-2 text-sm text-gray-600 mb-4">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                      <span className="truncate">{f.email}</span>
+                    </div>
+                    {f.cabin_number && (
+                      <div className="flex items-center gap-2">
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                        <span>{f.cabin_block ? `${f.cabin_block} - ` : ''}{f.cabin_number}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="border-t pt-4">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Research Areas</p>
+                    <p className="text-sm text-gray-700 line-clamp-2">
+                      {f.area_of_interest || 'General Engineering'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+      </main>
     </div>
   );
 }

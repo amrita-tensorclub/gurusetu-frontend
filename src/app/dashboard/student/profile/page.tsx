@@ -2,161 +2,95 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
-
-interface StudentProfile {
-  id: string;
-  name: string;
-  roll_number: string;
-  year: number;
-  department_id: string;
-  bio: string | null;
-  phone_number: string | null;
-  department: {
-    id: string;
-    name: string;
-    code: string;
-  };
-  user: {
-    email: string;
-    username: string;
-  };
-}
-
-interface Department {
-  id: string;
-  name: string;
-  code: string;
-}
+import api from '@/lib/api';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function StudentProfile() {
   const router = useRouter();
-  const [profile, setProfile] = useState<StudentProfile | null>(null);
-  const [departments, setDepartments] = useState<Department[]>([]);
+  const { user, loading: authLoading } = useAuth('student');
+  
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [bioLength, setBioLength] = useState(0);
+  const [message, setMessage] = useState({ type: '', text: '' });
+
+  // Form State
   const [formData, setFormData] = useState({
+    id: '',
     name: '',
+    roll_number: '',
+    email: '',
+    department: '',
+    year: 0,
     phone_number: '',
     bio: '',
-    year: ''
+    area_of_interest: '',
+    linkedin_url: '',
+    github_url: ''
   });
 
+  // Load Data
   useEffect(() => {
-    loadProfile();
-    loadDepartments();
-  }, []);
-
-  const loadDepartments = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('departments')
-        .select('*')
-        .order('name');
-      
-      if (data && !error) {
-        setDepartments(data);
-      } else {
-        // Fallback departments data
-        setDepartments([
-          { id: '1', name: 'Computer Science & Engineering (CSE)', code: 'CSE' },
-          { id: '2', name: 'Electronics & Communication Engineering (ECE)', code: 'ECE' },
-          { id: '3', name: 'Mechanical Engineering (ME)', code: 'ME' },
-          { id: '4', name: 'Civil Engineering (CE)', code: 'CE' },
-          { id: '5', name: 'Electrical & Electronics Engineering (EEE)', code: 'EEE' }
-        ]);
+    const loadProfile = async () => {
+      if (!user) return;
+      try {
+        // Reuse the dashboard API to get the full profile
+        const data = await api.dashboard.student((user as any).id);
+        if (data && data.student) {
+          const s = data.student;
+          setFormData({
+            id: s.id,
+            name: s.name || '',
+            roll_number: s.roll_number || '',
+            email: s.user?.email || '',
+            department: s.department?.name || '',
+            year: s.year || 0,
+            phone_number: s.phone_number || '',
+            bio: s.bio || '',
+            area_of_interest: s.area_of_interest || '',
+            linkedin_url: s.linkedin_url || '', // Assuming these fields exist in DB
+            github_url: s.github_url || ''
+          });
+        }
+      } catch (error) {
+        console.error('Profile load error:', error);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Failed to load departments:', error);
-      // Use fallback data
-      setDepartments([
-        { id: '1', name: 'Computer Science & Engineering (CSE)', code: 'CSE' },
-        { id: '2', name: 'Electronics & Communication Engineering (ECE)', code: 'ECE' },
-        { id: '3', name: 'Mechanical Engineering (ME)', code: 'ME' },
-        { id: '4', name: 'Civil Engineering (CE)', code: 'CE' },
-        { id: '5', name: 'Electrical & Electronics Engineering (EEE)', code: 'EEE' }
-      ]);
-    }
-  };
+    };
 
-  const loadProfile = async () => {
-    try {
-      const userData = JSON.parse(localStorage.getItem('user') || '{}');
-      
-      const { data, error } = await supabase
-        .from('students')
-        .select(`
-          *,
-          department:departments(id, name, code),
-          user:users(email, username)
-        `)
-        .eq('user_id', userData.id)
-        .single();
+    if (!authLoading) loadProfile();
+  }, [user, authLoading]);
 
-      if (data && !error) {
-        setProfile(data);
-        setFormData({
-          name: data.name || '',
-          phone_number: data.phone_number || '',
-          bio: data.bio || '',
-          year: `${data.year}${data.year === 1 ? 'st' : data.year === 2 ? 'nd' : data.year === 3 ? 'rd' : 'th'} Year / ${2025-data.year+1}-${2025-data.year+5}`
-        });
-        setBioLength(data.bio?.length || 0);
-      } else {
-        // No fallback data - redirect to complete profile setup
-        console.log('No student profile found');
-      }
-    } catch (error) {
-      console.error('Profile load error:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  // Handle Input Change
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-
-    if (name === 'bio') {
-      setBioLength(value.length);
-    }
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = async () => {
+  // Handle Submit
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setIsSaving(true);
-    try {
-      const userData = JSON.parse(localStorage.getItem('user') || '{}');
-      
-      const { error } = await supabase
-        .from('students')
-        .update({
-          name: formData.name,
-          phone_number: formData.phone_number || null,
-          bio: formData.bio || null
-        })
-        .eq('user_id', userData.id);
+    setMessage({ type: '', text: '' });
 
-      if (!error) {
-        // Update local storage
-        const updatedProfile = { ...profile, ...formData };
-        localStorage.setItem('profile', JSON.stringify(updatedProfile));
-        alert('Profile updated successfully!');
-      } else {
-        alert('Failed to update profile');
-      }
-    } catch (error) {
-      console.error('Save error:', error);
-      alert('Failed to update profile');
-    } finally {
-      setIsSaving(false);
+    const result = await api.student.updateProfile(formData.id, {
+      phone_number: formData.phone_number,
+      bio: formData.bio,
+      area_of_interest: formData.area_of_interest,
+      linkedin_url: formData.linkedin_url,
+      github_url: formData.github_url
+    });
+
+    if (result.error) {
+      setMessage({ type: 'error', text: result.error });
+    } else {
+      setMessage({ type: 'success', text: 'Profile updated successfully!' });
+      // Update local user cache if needed, or just let the dashboard fetch fresh data
     }
+    setIsSaving(false);
   };
 
-  if (isLoading) {
+  if (authLoading || isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-[#8B1538] border-t-transparent rounded-full animate-spin"></div>
@@ -167,166 +101,144 @@ export default function StudentProfile() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-[#8B1538] text-white px-4 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <button 
-              onClick={() => router.back()}
-              className="p-1"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <h1 className="text-xl font-semibold">My Profile</h1>
-          </div>
-          <button className="p-1">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-            </svg>
+      <header className="bg-[#8B1538] text-white px-4 py-4 shadow-sm">
+        <div className="max-w-4xl mx-auto flex items-center gap-4">
+          <button onClick={() => router.back()} className="hover:bg-white/20 p-1 rounded">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
           </button>
+          <h1 className="text-xl font-bold">Edit Profile</h1>
         </div>
       </header>
 
-      {/* Content */}
-      <div className="px-6 py-8 max-w-lg mx-auto">
-        {/* Profile Photo */}
-        <div className="text-center mb-8">
-          <div className="relative inline-block">
-            <div className="w-24 h-24 bg-[#8B1538] rounded-full flex items-center justify-center text-white text-2xl font-medium">
-              {profile?.name ? profile.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'ST'}
+      <main className="max-w-4xl mx-auto px-4 py-8">
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          
+          {/* Profile Header / Read-Only Info */}
+          <div className="bg-gray-50 px-6 py-8 border-b border-gray-100 flex flex-col md:flex-row items-center gap-6">
+            <div className="w-24 h-24 bg-[#8B1538] rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg">
+              {formData.name.charAt(0).toUpperCase()}
             </div>
-            <button className="absolute bottom-0 right-0 w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            </button>
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mt-4">{profile?.name || 'Student'}</h2>
-          <p className="text-gray-600">{profile?.department?.code || 'Dept'}, {profile?.year === 1 ? '1st' : profile?.year === 2 ? '2nd' : profile?.year === 3 ? '3rd' : '4th'} Year</p>
-          <div className="flex items-center justify-center space-x-2 mt-2 text-gray-600">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-            <span>{profile?.user?.email || 'student@college.edu'}</span>
-          </div>
-          <p className="text-gray-500 text-sm mt-1">
-            Roll Number: {profile?.roll_number || 'Not set'}
-          </p>
-        </div>
-
-        {/* Form Fields */}
-        <div className="space-y-6">
-          {/* Name */}
-          <div>
-            <label className="block text-sm text-gray-600 mb-2">Name</label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#8B1538] focus:border-transparent"
-            />
+            <div className="text-center md:text-left">
+              <h2 className="text-2xl font-bold text-gray-800">{formData.name}</h2>
+              <p className="text-gray-500">{formData.roll_number} | {formData.department}</p>
+              <p className="text-sm text-gray-400 mt-1">{formData.email}</p>
+            </div>
           </div>
 
-          {/* Department */}
-          <div>
-            <label className="block text-sm text-gray-600 mb-2">Department</label>
-            <select
-              disabled
-              value={profile?.department?.name || 'Not set'}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 focus:outline-none"
-            >
-              <option value={profile?.department?.name || 'Computer Science & Engineering (CSE)'}>
-                {profile?.department?.name || 'Computer Science & Engineering (CSE)'}
-              </option>
-            </select>
-          </div>
+          {/* Edit Form */}
+          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            
+            {message.text && (
+              <div className={`p-4 rounded ${message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                {message.text}
+              </div>
+            )}
 
-          {/* Year / Batch */}
-          <div>
-            <label className="block text-sm text-gray-600 mb-2">Year / Batch</label>
-            <select
-              name="year"
-              disabled
-              value={formData.year}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 focus:outline-none"
-            >
-              <option value={formData.year}>{formData.year}</option>
-            </select>
-          </div>
-
-          {/* Email */}
-          <div>
-            <label className="block text-sm text-gray-600 mb-2">Email</label>
-            <div className="relative">
-              <input
-                type="email"
-                disabled
-                value={profile?.user?.email || 'student@college.edu'}
-                className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 focus:outline-none"
-              />
-              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Contact Info */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                <input 
+                  type="text" 
+                  name="phone_number"
+                  value={formData.phone_number} 
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-[#8B1538] focus:border-transparent outline-none"
+                  placeholder="+91 XXXXX XXXXX"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Year of Study</label>
+                <input 
+                  type="text" 
+                  value={formData.year} 
+                  disabled
+                  className="w-full border border-gray-200 bg-gray-50 rounded-lg p-2.5 text-gray-500 cursor-not-allowed"
+                />
               </div>
             </div>
-          </div>
 
-          {/* Phone Number */}
-          <div>
-            <label className="block text-sm text-gray-600 mb-2">Phone Number</label>
-            <input
-              type="tel"
-              name="phone_number"
-              placeholder="Enter phone number"
-              value={formData.phone_number}
-              onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#8B1538] focus:border-transparent"
-            />
-          </div>
+            {/* Area of Interest (Critical for Recommendations) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Area of Interest / Skills <span className="text-red-500">*</span>
+              </label>
+              <p className="text-xs text-gray-500 mb-2">
+                This helps us recommend relevant projects. Separate skills with commas.
+              </p>
+              <textarea 
+                name="area_of_interest"
+                rows={3}
+                value={formData.area_of_interest} 
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#8B1538] focus:border-transparent outline-none"
+                placeholder="e.g. Machine Learning, React, IoT, Python..."
+                required
+              />
+            </div>
 
-          {/* Bio / About */}
-          <div>
-            <label className="block text-sm text-gray-600 mb-2">Bio / About</label>
-            <div className="relative">
-              <textarea
+            {/* Bio */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">About Me / Bio</label>
+              <textarea 
                 name="bio"
-                placeholder="Write a brief bio (max 100 characters)"
-                value={formData.bio}
-                onChange={handleInputChange}
-                maxLength={100}
                 rows={4}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#8B1538] focus:border-transparent resize-none"
+                value={formData.bio} 
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-[#8B1538] focus:border-transparent outline-none"
+                placeholder="Tell us about your academic interests and goals..."
               />
-              <div className="absolute bottom-3 right-3 text-sm text-gray-400">
-                {bioLength}/100
+            </div>
+
+            {/* Links */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">LinkedIn Profile URL</label>
+                <input 
+                  type="url" 
+                  name="linkedin_url"
+                  value={formData.linkedin_url} 
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-[#8B1538] outline-none"
+                  placeholder="https://linkedin.com/in/..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">GitHub Profile URL</label>
+                <input 
+                  type="url" 
+                  name="github_url"
+                  value={formData.github_url} 
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-[#8B1538] outline-none"
+                  placeholder="https://github.com/..."
+                />
               </div>
             </div>
-          </div>
 
-          {/* Save Button */}
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="w-full bg-[#8B1538] text-white py-4 rounded-lg text-lg font-semibold hover:bg-[#7A1230] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSaving ? 'Saving...' : 'Save Changes'}
-          </button>
+            {/* Actions */}
+            <div className="pt-4 flex justify-end gap-4">
+              <button 
+                type="button" 
+                onClick={() => router.back()}
+                className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                disabled={isSaving}
+                className="px-8 py-2.5 bg-[#8B1538] text-white rounded-lg hover:bg-[#7A1230] transition-colors disabled:opacity-70 flex items-center gap-2"
+              >
+                {isSaving && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
+                Save Changes
+              </button>
+            </div>
 
-          {/* Next Step */}
-          <div className="text-center">
-            <button className="text-[#8B1538] font-medium flex items-center justify-center w-full">
-              Next: Add Experience & Interests
-              <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4 4H3" />
-              </svg>
-            </button>
-          </div>
+          </form>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

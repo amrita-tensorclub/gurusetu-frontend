@@ -2,115 +2,50 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import api from '@/lib/api'; // NEW API
+import { useAuth } from '@/hooks/useAuth'; // NEW HOOK
 
 export default function StudentProjects() {
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth('student'); // Auth check
+  
   const [personalProjects, setPersonalProjects] = useState([]);
   const [acceptedProjects, setAcceptedProjects] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('personal'); // 'personal' or 'accepted'
 
   useEffect(() => {
-    loadProjects();
-  }, []);
-
-  const loadProjects = async () => {
-    try {
-      const userData = localStorage.getItem('user');
-      if (!userData) return;
+    const loadData = async () => {
+      if (!user) return;
       
-      const user = JSON.parse(userData);
-      
-      // Get student data
-      const { data: studentData, error: studentError } = await supabase
-        .from('students')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
+      try {
+        // 1. We need the Student ID first. 
+        // If your user object has the student ID (e.g. from login response), use it.
+        // If not, fetch the profile first.
+        // Assuming user.id is the UUID linked to the student node:
+        
+        // Fetch Profile to get accurate Student ID
+        const dashboardData = await api.dashboard.student((user as any).id);
+        const studentId = dashboardData?.student?.id;
 
-      if (studentError || !studentData) {
-        console.error('Error getting student data:', studentError);
-        return;
+        if (studentId) {
+          const projectsData = await api.student.getMyProjects(studentId);
+          setPersonalProjects(projectsData.personal || []);
+          setAcceptedProjects(projectsData.accepted || []);
+        }
+      } catch (error) {
+        console.error('Error loading projects:', error);
+      } finally {
+        setIsLoading(false);
       }
+    };
 
-      // Load personal projects
-      const { data: personalProjectsData, error: personalError } = await supabase
-        .from('student_projects')
-        .select('*')
-        .eq('student_id', studentData.id)
-        .order('year', { ascending: false });
-
-      if (personalError) {
-        console.error('Error loading personal projects:', personalError);
-      } else {
-        setPersonalProjects(personalProjectsData || []);
-      }
-
-      // Load accepted faculty project applications with better query
-      const { data: acceptedAppsData, error: acceptedError } = await supabase
-        .from('student_applications')
-        .select(`
-          id,
-          status,
-          applied_date,
-          response_date,
-          opening_type,
-          project_opening_id
-        `)
-        .eq('student_id', studentData.id)
-        .eq('status', 'accepted')
-        .eq('opening_type', 'project')
-        .order('response_date', { ascending: false });
-
-      if (acceptedError) {
-        console.error('Error loading accepted applications:', acceptedError);
-      } else {
-        // Get project details for each accepted application
-        const projectsWithDetails = await Promise.all(
-          (acceptedAppsData || []).map(async (app) => {
-            const { data: projectData, error: projectError } = await supabase
-              .from('faculty_project_openings')
-              .select(`
-                id,
-                topic,
-                description,
-                tech_stack,
-                expected_duration,
-                faculty (
-                  name,
-                  designation,
-                  departments (
-                    name
-                  )
-                )
-              `)
-              .eq('id', app.project_opening_id)
-              .single();
-
-            if (projectError) {
-              console.error('Error loading project details:', projectError);
-              return null;
-            }
-
-            return {
-              ...app,
-              project: projectData
-            };
-          })
-        );
-
-        setAcceptedProjects(projectsWithDetails.filter(p => p !== null));
-      }
-
-    } catch (error) {
-      console.error('Error loading projects:', error);
-    } finally {
-      setIsLoading(false);
+    if (!authLoading && user) {
+      loadData();
     }
-  };
+  }, [user, authLoading]);
 
-  if (isLoading) {
+  if (isLoading || authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-[#8B1538] border-t-transparent rounded-full animate-spin"></div>
@@ -177,10 +112,11 @@ export default function StudentProjects() {
                 <p className="text-gray-600 mb-6">
                   Add your personal projects to showcase your work.
                 </p>
+                {/* Optional: Add "Create Project" button here later */}
               </div>
             ) : (
               personalProjects.map((project: any) => (
-                <div key={project.id} className="bg-white rounded-lg border border-gray-200 p-6">
+                <div key={project.id || Math.random()} className="bg-white rounded-lg border border-gray-200 p-6">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold text-gray-900 mb-2">{project.title}</h3>
@@ -243,13 +179,17 @@ export default function StudentProjects() {
               </div>
             ) : (
               acceptedProjects.map((application: any) => {
-                const project = application.project; // Updated to match new structure
+                const project = application.project; 
+                // Safety check for dates
+                const acceptedDate = application.response_date ? new Date(application.response_date).toLocaleDateString() : 'N/A';
+                const appliedDate = application.applied_date ? new Date(application.applied_date).toLocaleDateString() : 'N/A';
+                
                 return (
-                  <div key={application.id} className="bg-white rounded-lg border border-gray-200 p-6">
+                  <div key={application.id || Math.random()} className="bg-white rounded-lg border border-gray-200 p-6">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-2">
-                          <h3 className="text-lg font-semibold text-gray-900">{project.topic}</h3>
+                          <h3 className="text-lg font-semibold text-gray-900">{project.topic || project.title}</h3>
                           <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
                             ACCEPTED
                           </span>
@@ -259,12 +199,12 @@ export default function StudentProjects() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                           <div>
                             <span className="text-sm font-medium text-gray-700">Faculty: </span>
-                            <span className="text-sm text-gray-900">{project.faculty.name}</span>
-                            <span className="text-xs text-gray-500 block">{project.faculty.designation}</span>
+                            <span className="text-sm text-gray-900">{project.faculty?.name || 'Unknown'}</span>
+                            <span className="text-xs text-gray-500 block">{project.faculty?.designation}</span>
                           </div>
                           <div>
                             <span className="text-sm font-medium text-gray-700">Department: </span>
-                            <span className="text-sm text-gray-900">{project.faculty.departments.name}</span>
+                            <span className="text-sm text-gray-900">{project.faculty?.departments?.name || 'Unknown'}</span>
                           </div>
                         </div>
                         
@@ -282,8 +222,8 @@ export default function StudentProjects() {
                         )}
                         
                         <div className="flex items-center space-x-4 text-sm text-gray-500">
-                          <span>Applied: {new Date(application.applied_date).toLocaleDateString()}</span>
-                          <span>Accepted: {new Date(application.response_date).toLocaleDateString()}</span>
+                          <span>Applied: {appliedDate}</span>
+                          <span>Accepted: {acceptedDate}</span>
                           {project.expected_duration && <span>Duration: {project.expected_duration}</span>}
                         </div>
                       </div>
