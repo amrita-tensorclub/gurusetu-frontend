@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { supabase, Department } from '@/lib/supabase';
+import api, { Department } from '@/lib/api';
 
 export default function SignupPage() {
   const router = useRouter();

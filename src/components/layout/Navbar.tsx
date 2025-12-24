@@ -1,20 +1,55 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { NavItem } from '@/types';
+import { usePathname, useRouter } from 'next/navigation';
+// We import the User type to ensure type safety
+import { User } from '@/lib/api';
 
-interface NavbarProps {
-  navItems: NavItem[];
-  userName?: string;
-  userRole?: string;
-  onLogout?: () => void;
+// Keep your existing NavItem definition or import it
+export interface NavItem {
+  label: string;
+  href: string;
+  badge?: string;
 }
 
-export function Navbar({ navItems, userName, userRole, onLogout }: NavbarProps) {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+interface NavbarProps {
+  navItems?: NavItem[]; // Made optional so it doesn't crash if parent doesn't pass it
+}
+
+export function Navbar({ navItems = [] }: NavbarProps) {
+  const router = useRouter();
   const pathname = usePathname();
+  
+  // State for UI and User
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  // 1. Check for logged-in user on mount
+  useEffect(() => {
+    setMounted(true);
+    const stored = localStorage.getItem('currentUser');
+    if (stored) {
+      try {
+        setUser(JSON.parse(stored));
+      } catch (e) {
+        console.error("Failed to parse user", e);
+      }
+    }
+  }, []);
+
+  // 2. Handle Logout
+  const handleLogout = () => {
+    localStorage.removeItem('currentUser');
+    setUser(null);
+    router.push('/login');
+    setIsMenuOpen(false); // Close mobile menu if open
+  };
+
+  // If not mounted yet (SSR phase), render a placeholder or the navbar without user data
+  // to prevent hydration mismatch
+  if (!mounted) return null;
 
   return (
     <nav className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
@@ -59,31 +94,35 @@ export function Navbar({ navItems, userName, userRole, onLogout }: NavbarProps) 
             })}
           </div>
 
-          {/* User menu */}
+          {/* User menu (Right Side) */}
           <div className="hidden md:flex items-center space-x-4">
-            {userName && (
+            {user ? (
               <div className="flex items-center space-x-3">
                 <div className="text-right">
                   <p className="text-sm font-medium text-gray-900 dark:text-white">
-                    {userName}
+                    {user.name}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
-                    {userRole}
+                    {user.role}
                   </p>
                 </div>
                 <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
                   <span className="text-white font-medium text-sm">
-                    {userName.charAt(0).toUpperCase()}
+                    {user.name?.charAt(0).toUpperCase() || 'U'}
                   </span>
                 </div>
-                {onLogout && (
-                  <button
-                    onClick={onLogout}
-                    className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-                  >
-                    Logout
-                  </button>
-                )}
+                <button
+                  onClick={handleLogout}
+                  className="text-sm text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 ml-2"
+                >
+                  Logout
+                </button>
+              </div>
+            ) : (
+              // Show Login/Signup if no user found
+              <div className="flex items-center space-x-4">
+                 <Link href="/login" className="text-gray-700 hover:text-blue-600 font-medium">Login</Link>
+                 <Link href="/signup" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Sign Up</Link>
               </div>
             )}
           </div>
@@ -132,17 +171,27 @@ export function Navbar({ navItems, userName, userRole, onLogout }: NavbarProps) 
                 </Link>
               );
             })}
-            {userName && onLogout && (
-              <button
-                onClick={() => {
-                  onLogout();
-                  setIsMenuOpen(false);
-                }}
-                className="block w-full text-left px-3 py-2 text-base font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-              >
-                Logout
-              </button>
-            )}
+            
+            <div className="border-t border-gray-200 dark:border-gray-700 my-2 pt-2">
+              {user ? (
+                 <>
+                  <div className="px-3 py-2 text-sm text-gray-500">
+                    Signed in as <span className="font-bold">{user.name}</span>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="block w-full text-left px-3 py-2 text-base font-medium text-red-600 hover:bg-red-50"
+                  >
+                    Logout
+                  </button>
+                 </>
+              ) : (
+                <>
+                  <Link href="/login" onClick={() => setIsMenuOpen(false)} className="block px-3 py-2 text-base font-medium text-gray-700">Login</Link>
+                  <Link href="/signup" onClick={() => setIsMenuOpen(false)} className="block px-3 py-2 text-base font-medium text-blue-600">Sign Up</Link>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
