@@ -2,7 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-<<<<<<< HEAD
 :root {
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 214, 219, 220;
@@ -19,7 +18,6 @@ body {
     rgb(var(--background-start-rgb));
 }
 
-=======
 @layer utilities {
   .no-scrollbar::-webkit-scrollbar {
     display: none;
@@ -30,4 +28,3 @@ body {
     scrollbar-width: none;
   }
 }
->>>>>>> cae2a29b78dd9f0ccc88b5214544702cd74356ef

@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { Search, MapPin, Clock, CheckCircle, Navigation, X, ShieldCheck, Sparkles, RefreshCw } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import FacultyList from '../components/FacultyList';
-import InteractiveMap from '../components/MapView';
-import { supabase } from '../lib/supabase';
+import Navbar from '../../components/Navbar';
+import FacultyList from '../../components/FacultyList';
+import InteractiveMap from '../../components/MapView';
+import { supabase } from '../../lib/supabase';
 
 export default function Home() {
   const [facultyList, setFacultyList] = useState([]);
