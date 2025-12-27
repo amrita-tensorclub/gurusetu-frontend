@@ -3,13 +3,27 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, ChevronRight } from 'lucide-react';
-import { authService } from '../../../services/authService';
+import { authService } from '@/services/authService';
 import toast, { Toaster } from 'react-hot-toast';
 import Link from 'next/link';
 
+// --- HELPER: Manually decode JWT to get user_id ---
+function parseJwt(token: string) {
+    try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        return JSON.parse(jsonPayload);
+    } catch (e) {
+        return null;
+    }
+}
+
 export default function LoginPage() {
   const router = useRouter();
-  const [role, setRole] = useState<'student' | 'faculty'>('student'); // Added Role State
+  const [role, setRole] = useState<'student' | 'faculty'>('student');
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,12 +34,39 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // 1. Perform Login (Backend verifies email/password)
-      await authService.login(email, password);
+      // 1. Login
+      const response = await authService.login(email, password);
+      console.log("Login Full Response:", response);
+
+      // 2. CRITICAL: Extract User ID safely
+      let userId = response.user_id; 
       
-      toast.success(`Welcome back, ${role === 'student' ? 'Student' : 'Professor'}!`);
+      // If backend didn't send user_id directly, extract it from the token
+      if (!userId && response.access_token) {
+          const decoded = parseJwt(response.access_token);
+          if (decoded) {
+              // Check common ID fields in JWT
+              userId = decoded.user_id || decoded.sub || decoded.id;
+          }
+      }
+
+      if (!userId) {
+          throw new Error("Could not find User ID in login response.");
+      }
+
+      // 3. Save to LocalStorage in a CLEAN format
+      const userData = {
+          user_id: userId,
+          role: role,
+          access_token: response.access_token
+      };
       
-      // 2. Redirect based on the SELECTED ROLE toggle
+      localStorage.setItem("user", JSON.stringify(userData));
+      console.log("Saved to LocalStorage:", userData); // Verify this in console
+
+      toast.success(`Welcome back!`);
+      
+      // 4. Redirect
       if (role === 'student') {
         router.push('/dashboard/student');
       } else {
@@ -33,8 +74,8 @@ export default function LoginPage() {
       }
       
     } catch (err: any) {
-      console.error("Login Failed:", err);
-      toast.error('Invalid Credentials');
+      console.error("Login Error:", err);
+      toast.error('Login Failed: ' + (err.message || "Server Error"));
     } finally {
       setLoading(false);
     }
@@ -43,10 +84,8 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-[#1a1a1a] flex items-center justify-center relative overflow-hidden font-sans">
       <Toaster position="top-center" />
-      
       <div className="w-[375px] h-[812px] bg-white rounded-[3rem] overflow-hidden relative shadow-2xl border-8 border-gray-900">
         
-        {/* Header */}
         <div className="bg-white pt-16 pb-2 px-6 text-center space-y-1">
           <h1 className="text-3xl font-black text-[#8C1515] tracking-tight">Guru Setu</h1>
           <p className="text-xs font-bold text-[#8C1515] uppercase tracking-widest leading-relaxed">
@@ -54,7 +93,6 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* --- ADDED: Role Toggle (Same as Signup) --- */}
         <div className="px-8 mt-6">
           <div className="flex bg-gray-100 p-1 rounded-full shadow-inner">
             <button
@@ -80,7 +118,6 @@ export default function LoginPage() {
 
         <div className="px-8 space-y-6 mt-8">
           <form onSubmit={handleLogin} className="space-y-5">
-            
             <div className="relative">
               <input 
                 type="email" 
@@ -91,7 +128,6 @@ export default function LoginPage() {
                 required
               />
             </div>
-
             <div className="relative">
               <input 
                 type={showPassword ? "text" : "password"} 
@@ -109,7 +145,6 @@ export default function LoginPage() {
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
-
             <div className="relative pt-4">
               <button 
                 disabled={loading}
@@ -124,7 +159,6 @@ export default function LoginPage() {
               </button>
             </div>
           </form>
-
           <div className="text-center mt-6">
             <p className="text-xs font-bold text-gray-400">New to Guru Setu?</p>
             <Link href="/signup" className="text-sm font-bold text-[#8C1515] hover:underline">
