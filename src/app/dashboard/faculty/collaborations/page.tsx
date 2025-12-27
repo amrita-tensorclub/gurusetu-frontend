@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { ChevronLeft, Filter, Search, Bookmark, RefreshCw, X, MapPin, Mail, Calendar } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { facultyDashboardService, CollabProject, FacultyProfile } from '@/services/facultyDashboardService';
-import { notificationService } from '@/services/notificationService'; // Imported correctly at top
+import { notificationService } from '@/services/notificationService';
 import toast, { Toaster } from 'react-hot-toast';
 
 export default function CollaborationHub() {
@@ -51,7 +51,6 @@ export default function CollaborationHub() {
   // --- Handle Interest (Express Interest) ---
   const handleInterest = async (projectId: string) => {
     try {
-      // Calls the notification service we built earlier
       const res = await notificationService.expressInterest(projectId);
       toast.success(res.message);
     } catch (error) {
@@ -74,7 +73,7 @@ export default function CollaborationHub() {
               <button><Filter size={24} onClick={() => setIsFilterOpen(true)} /></button>
            </div>
 
-           {/* Search Bar */}
+           {/* Search Bar (Updated: Removed Filter Button) */}
            <div className="flex gap-2">
               <div className="flex-1 bg-white rounded-xl flex items-center px-3 py-2.5 shadow-inner">
                  <Search size={16} className="text-gray-400 mr-2" />
@@ -85,9 +84,6 @@ export default function CollaborationHub() {
                    onChange={(e) => setSearch(e.target.value)}
                  />
               </div>
-              <button className="bg-white text-[#8C1515] px-3 rounded-xl border border-gray-200 font-bold text-xs">
-                Filter
-              </button>
            </div>
         </div>
 
@@ -144,8 +140,7 @@ export default function CollaborationHub() {
                 </div>
 
                 <button 
-                  // Use project_id if available, otherwise fallback to title for now
-                  // @ts-ignore (ignoring missing 'id' on interface for quick fix if backend structure varies)
+                  // @ts-ignore
                   onClick={() => handleInterest(proj.id || proj.title)} 
                   className="w-full bg-[#8C1515] text-white py-3 rounded-xl font-black text-[10px] uppercase shadow-md active:scale-95 transition-transform mt-4"
                 >
@@ -190,7 +185,7 @@ export default function CollaborationHub() {
         {/* --- FACULTY PROFILE POPUP --- */}
         {selectedFacultyId && (
           <div className="absolute inset-0 bg-white z-50 overflow-y-auto animate-in slide-in-from-right duration-300">
-             
+              
              {/* Modal Header */}
              <div className="relative h-40 bg-[#F9F9F9] flex justify-center items-end pb-0 border-b border-gray-100">
                 <button 
@@ -215,8 +210,13 @@ export default function CollaborationHub() {
                    <p className="text-xs font-bold text-[#8C1515] mt-1">{profileData.info.designation}</p>
                    <p className="text-[10px] text-gray-400 font-bold">{profileData.info.department}</p>
                    
-                   <div className="flex justify-center gap-2 mt-3 mb-5">
-                      {profileData.info.qualifications.map((q, i) => (
+                   {/* FIX: Combine UG, PG, PhD into one list for display */}
+                   <div className="flex justify-center flex-wrap gap-2 mt-3 mb-5">
+                      {[
+                        ...(profileData.info.phd_details || []),
+                        ...(profileData.info.pg_details || []),
+                        ...(profileData.info.ug_details || [])
+                      ].map((q, i) => (
                          <span key={i} className="bg-gray-100 text-gray-600 px-2 py-1 rounded-md text-[9px] font-bold">
                             {q}
                          </span>
@@ -232,7 +232,12 @@ export default function CollaborationHub() {
                          <MapPin size={16} className="text-gray-500" />
                          <div className="text-left">
                             <p className="text-[9px] font-bold text-gray-400 uppercase">Cabin Location</p>
-                            <p className="text-xs font-bold text-gray-700">{profileData.info.cabin_location}</p>
+                            {/* FIX: Construct location from specific fields */}
+                            <p className="text-xs font-bold text-gray-700">
+                               {profileData.info.cabin_block ? 
+                                  `${profileData.info.cabin_block}, Floor ${profileData.info.cabin_floor}, ${profileData.info.cabin_number}` 
+                                  : "Location not updated"}
+                            </p>
                          </div>
                       </div>
                    </div>
@@ -240,7 +245,7 @@ export default function CollaborationHub() {
                    <div className="text-left mb-6">
                       <h3 className="text-[#8C1515] font-black text-xs uppercase tracking-widest mb-3">Research Interests</h3>
                       <div className="flex flex-wrap gap-2">
-                         {profileData.info.interests.map(int => (
+                         {profileData.info.interests?.map(int => (
                             <span key={int} className="border border-[#8C1515] text-[#8C1515] px-3 py-1.5 rounded-full text-[10px] font-bold">
                                {int}
                             </span>
@@ -251,8 +256,8 @@ export default function CollaborationHub() {
                    <div className="text-left mb-6">
                       <h3 className="text-[#8C1515] font-black text-xs uppercase tracking-widest mb-3">Current Openings</h3>
                       <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                         {profileData.openings.length === 0 && <p className="text-xs text-gray-400">No current openings.</p>}
-                         {profileData.openings.map(op => (
+                         {profileData.openings?.length === 0 && <p className="text-xs text-gray-400">No current openings.</p>}
+                         {profileData.openings?.map(op => (
                             <div key={op.id} className="min-w-[200px] bg-white border border-gray-200 p-4 rounded-xl shadow-sm">
                                <p className="text-[9px] font-bold text-gray-400 uppercase mb-1">{op.type}</p>
                                <h4 className="font-bold text-sm text-gray-800 leading-tight mb-2">{op.title}</h4>
