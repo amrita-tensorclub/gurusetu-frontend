@@ -3,6 +3,29 @@ import api from "./api";
 /* =========================
    Interfaces
 ========================= */
+export interface ProjectStats {
+  active_projects: number;
+  total_applicants: number;
+  interviews_set: number;
+}
+
+export interface FacultyProject {
+  id: string;
+  title: string;
+  status: string;
+  domain: string;
+  posted_date: string;
+  applicant_count: number;
+}
+
+export interface Applicant {
+  student_id: string;
+  name: string;
+  roll_no: string;
+  department: string;
+  profile_picture?: string;
+  applied_date: string;
+}
 
 export interface OpeningData {
   title: string;
@@ -210,6 +233,17 @@ uploadImage: async (file: File) => {
     const { data } = await api.post("/users/upload-profile-picture", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
+    return data;
+  },
+  getMyProjects: async (): Promise<{ stats: ProjectStats; projects: FacultyProject[] }> => {
+    // Note: ensure your backend router prefix matches this URL
+    // If you mounted faculty_projects router under /faculty-projects in main.py:
+    const { data } = await api.get("/faculty-projects/my-projects");
+    return data;
+  },
+
+  getProjectApplicants: async (projectId: string): Promise<Applicant[]> => {
+    const { data } = await api.get(`/faculty-projects/my-projects/${projectId}/applicants`);
     return data;
   },
 };
