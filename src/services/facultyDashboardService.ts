@@ -111,30 +111,30 @@ export interface FacultyProfile {
     designation: string;
     department: string;
     email: string;
+    phone: string;
     profile_picture?: string;
-    qualifications: string[];
-    cabin_location: string;
+    
+    // FIX: Added specific fields
+    cabin_block: string;
+    cabin_floor: string;
+    cabin_number: string;
+    
+    ug_details: string[];
+    pg_details: string[];
+    phd_details: string[];
+    
     interests: string[];
     availability_status: string;
   };
   schedule: string;
-  openings: {
-    id: string;
-    title: string;
-    type: string;
-    description: string;
-  }[];
-  previous_work: {
-    title: string;
-    type: string;
-    year: string;
-    outcome: string;
-  }[];
+  openings: any[];
+  previous_work: WorkItem[];
 }
 
 /* =========================
    Service
 ========================= */
+
 
 export const facultyDashboardService = {
   // ---- Students ----
@@ -185,30 +185,31 @@ export const facultyDashboardService = {
 
   // ---- Faculty Profile ----
   getFacultyProfile: async (facultyId: string): Promise<FacultyProfile> => {
-    const { data } = await api.get(
-      `/dashboard/student/faculty-profile/${facultyId}`
-    );
-    return data;
-  },
+      const { data } = await api.get(`/dashboard/student/faculty-profile/${facultyId}`);
+      return data;
+    },
 
-  updateFacultyProfile: async (
-    profileData: Partial<FacultyProfile>
-  ): Promise<any> => {
-    const { data } = await api.put(
-      "/users/faculty/profile",
-      profileData
-    );
+    updateFacultyProfile: async (profileData: any) => {
+    const { data } = await api.put("/users/faculty/profile", profileData);
     return data;
   },
 
   // ---- Openings ----
-  postOpening: async (opening: OpeningData): Promise<any> => {
-    const { data } = await api.post("/openings/", opening);
-    return data;
-  },
+  postOpening: async (opening: any) => {
+      const { data } = await api.post("/openings/", opening);
+      return data;
+    },
 
   deleteOpening: async (openingId: string): Promise<any> => {
     const { data } = await api.delete(`/openings/${openingId}`);
+    return data;
+  },
+uploadImage: async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const { data } = await api.post("/users/upload-profile-picture", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
     return data;
   },
 };
