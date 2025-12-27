@@ -109,7 +109,7 @@ export default function StudentDashboard() {
                 />
                 <MenuLink 
                     icon={Folder} 
-                    label="My Projects" 
+                    label="My Openings" 
                     onClick={() => handleNavigation('/dashboard/student/projects')} 
                 />
                 <MenuLink 
