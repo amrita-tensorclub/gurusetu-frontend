@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { ChevronLeft, Plus, Users, Calendar, Edit2, Trash2, Eye, RefreshCw, X, ChevronRight } from 'lucide-react';
+import { ChevronLeft, Plus, Users, Calendar, Eye, Trash2, X, ChevronRight, CheckCircle, RefreshCw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { facultyDashboardService, FacultyProject, ProjectStats, Applicant } from '@/services/facultyDashboardService';
 import toast, { Toaster } from 'react-hot-toast';
@@ -13,15 +13,16 @@ export default function MyProjectsPage() {
   const [stats, setStats] = useState<ProjectStats>({
     active_projects: 0,
     total_applicants: 0,
-    interviews_set: 0
+    total_shortlisted: 0
   });
 
   const [projects, setProjects] = useState<FacultyProject[]>([]);
   
-  // State for Applicants Modal
+  // Modal State
   const [selectedProject, setSelectedProject] = useState<FacultyProject | null>(null);
-  const [applicants, setApplicants] = useState<Applicant[]>([]);
-  const [loadingApplicants, setLoadingApplicants] = useState(false);
+  const [viewMode, setViewMode] = useState<'applicants' | 'shortlisted'>('applicants');
+  const [studentList, setStudentList] = useState<Applicant[]>([]);
+  const [loadingList, setLoadingList] = useState(false);
 
   useEffect(() => {
     loadProjects();
@@ -35,30 +36,37 @@ export default function MyProjectsPage() {
       setProjects(data.projects);
     } catch (err) {
       console.error(err);
-      toast.error("Failed to load projects");
+      toast.error("Failed to load openings");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleViewApplicants = async (project: FacultyProject) => {
+  const openModal = async (project: FacultyProject, mode: 'applicants' | 'shortlisted') => {
     setSelectedProject(project);
-    setLoadingApplicants(true);
+    setViewMode(mode);
+    setLoadingList(true);
+    setStudentList([]);
+
     try {
-      const data = await facultyDashboardService.getProjectApplicants(project.id);
-      setApplicants(data);
+      let data = [];
+      if (mode === 'applicants') {
+        data = await facultyDashboardService.getProjectApplicants(project.id);
+      } else {
+        data = await facultyDashboardService.getProjectShortlisted(project.id);
+      }
+      setStudentList(data);
     } catch (error) {
-      toast.error("Failed to load applicants");
+      toast.error(`Failed to load ${mode}`);
     } finally {
-      setLoadingApplicants(false);
+      setLoadingList(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if(confirm("Are you sure you want to delete this project?")) {
+    if(confirm("Delete this opening?")) {
         setProjects(projects.filter(p => p.id !== id));
-        toast.success("Project deleted");
-        // await facultyDashboardService.deleteOpening(id); 
+        toast.success("Opening removed");
     }
   };
 
@@ -66,41 +74,40 @@ export default function MyProjectsPage() {
     <div className="min-h-screen bg-[#e0e0e0] flex items-center justify-center py-8 font-sans">
       <Toaster position="top-center" />
 
-      {/* PHONE FRAME */}
       <div className="w-full max-w-[390px] h-[844px] bg-[#F9F9F9] rounded-[3rem] shadow-2xl border-8 border-gray-900 overflow-hidden relative flex flex-col">
         
-        {/* --- HEADER (FIXED: Removed Plus Button) --- */}
+        {/* HEADER */}
         <div className="bg-[#8C1515] text-white p-6 pt-12 pb-6 shadow-md z-10 flex justify-between items-center">
            <div className="flex items-center gap-3">
               <button onClick={() => router.back()}><ChevronLeft size={24} /></button>
               <h1 className="text-lg font-black tracking-tight">My Openings</h1>
            </div>
-           
-           {/* Plus Button Removed Here */}
-           <div className="w-6"></div> {/* Spacer to keep title centered if needed, or remove */}
+           <div className="w-6"></div>
         </div>
 
-        {/* --- SCROLLABLE CONTENT --- */}
+        {/* CONTENT */}
         <div className="flex-1 overflow-y-auto pb-24 scrollbar-hide bg-[#F2F2F2]">
            
-           {/* 1. STATS ROW */}
+           {/* STATS */}
            <div className="flex gap-3 overflow-x-auto px-4 py-6 scrollbar-hide">
-              {/* Active Card */}
-              <div className="min-w-[140px] bg-white p-4 rounded-2xl shadow-sm border-l-4 border-[#8C1515]">
-                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Active</p>
+              <div className="min-w-[130px] bg-white p-4 rounded-2xl shadow-sm border-l-4 border-[#8C1515]">
+                 <p className="text-[10px] font-bold text-gray-400 uppercase">Active</p>
                  <p className="text-3xl font-black text-[#8C1515] mt-1">{stats.active_projects}</p>
                  <p className="text-[9px] text-gray-400 font-bold mt-1">Projects Live</p>
               </div>
-
-              {/* Applicants Card */}
-              <div className="min-w-[140px] bg-white p-4 rounded-2xl shadow-sm border-l-4 border-[#D4AF37]">
-                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Applicants</p>
+              <div className="min-w-[130px] bg-white p-4 rounded-2xl shadow-sm border-l-4 border-[#D4AF37]">
+                 <p className="text-[10px] font-bold text-gray-400 uppercase">Applicants</p>
                  <p className="text-3xl font-black text-[#D4AF37] mt-1">{stats.total_applicants}</p>
-                 <p className="text-[9px] text-gray-400 font-bold mt-1">Total Students</p>
+                 <p className="text-[9px] text-gray-400 font-bold mt-1">Total Interested</p>
+              </div>
+              <div className="min-w-[130px] bg-white p-4 rounded-2xl shadow-sm border-l-4 border-green-600">
+                 <p className="text-[10px] font-bold text-gray-400 uppercase">Shortlisted</p>
+                 <p className="text-3xl font-black text-green-600 mt-1">{stats.total_shortlisted}</p>
+                 <p className="text-[9px] text-gray-400 font-bold mt-1">Candidates</p>
               </div>
            </div>
 
-           {/* 2. PROJECT LIST HEADER */}
+           {/* LIST HEADER */}
            <div className="px-6 flex justify-between items-end mb-2">
               <h2 className="text-[#8C1515] font-black text-sm uppercase tracking-widest">Project List</h2>
               <button onClick={loadProjects} className="text-gray-400 hover:text-[#8C1515]">
@@ -108,23 +115,19 @@ export default function MyProjectsPage() {
               </button>
            </div>
 
-           {/* 3. PROJECT CARDS */}
+           {/* LIST */}
            <div className="px-4 space-y-3">
               {projects.length === 0 && !loading && (
-                  <div className="text-center mt-10 p-5 bg-white rounded-2xl border border-dashed border-gray-300">
-                      <p className="text-gray-400 text-xs font-bold">No active projects found.</p>
-                      <button onClick={() => router.push('/dashboard/faculty/profile/research')} className="text-[#8C1515] text-xs font-black mt-2 underline">Post One Now</button>
+                  <div className="text-center mt-10 p-5">
+                      <p className="text-gray-400 text-xs font-bold">No active openings.</p>
                   </div>
               )}
               
               {projects.map((proj) => (
-                <div key={proj.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative group transition-all hover:shadow-md">
+                <div key={proj.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
                    
-                   {/* Status Badges */}
                    <div className="flex gap-2 mb-3">
-                      <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase ${
-                          proj.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-                      }`}>
+                      <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase bg-green-100 text-green-700">
                           {proj.status}
                       </span>
                       <span className="bg-[#FFF0F0] text-[#8C1515] px-2 py-0.5 rounded-md text-[9px] font-black uppercase">
@@ -132,12 +135,8 @@ export default function MyProjectsPage() {
                       </span>
                    </div>
 
-                   {/* Title */}
-                   <h3 className="font-black text-gray-800 text-sm leading-tight mb-3 pr-8">
-                      {proj.title}
-                   </h3>
+                   <h3 className="font-black text-gray-800 text-sm leading-tight mb-3 pr-8">{proj.title}</h3>
 
-                   {/* Meta Data */}
                    <div className="flex items-center gap-4 text-gray-400 mb-4">
                       <div className="flex items-center gap-1.5">
                          <Calendar size={12} />
@@ -149,14 +148,25 @@ export default function MyProjectsPage() {
                       </div>
                    </div>
 
-                   {/* Action Buttons */}
+                   {/* ACTION BUTTONS */}
                    <div className="flex gap-2 border-t border-gray-50 pt-3">
+                      {/* View Applicants */}
                       <button 
-                        onClick={() => handleViewApplicants(proj)}
+                        onClick={() => openModal(proj, 'applicants')}
                         className="flex-1 flex items-center justify-center gap-2 bg-[#F9F9F9] text-gray-700 py-2.5 rounded-xl text-[10px] font-bold hover:bg-gray-100"
                       >
-                         <Eye size={14} /> View Applicants
+                         <Eye size={14} /> Applicants
                       </button>
+
+                      {/* View Shortlisted (NEW BUTTON) */}
+                      <button 
+                        onClick={() => openModal(proj, 'shortlisted')}
+                        className="flex-1 flex items-center justify-center gap-2 bg-[#e6fffa] text-green-700 py-2.5 rounded-xl text-[10px] font-bold hover:bg-[#d1fae5] border border-green-100"
+                      >
+                         <CheckCircle size={14} /> 
+                         Shortlisted ({proj.shortlisted_count})
+                      </button>
+
                       <button 
                         onClick={() => handleDelete(proj.id)}
                         className="w-10 flex items-center justify-center bg-[#FFF0F0] text-[#8C1515] rounded-xl hover:bg-red-100"
@@ -171,14 +181,16 @@ export default function MyProjectsPage() {
            <div className="h-20"></div>
         </div>
 
-        {/* --- APPLICANTS MODAL OVERLAY --- */}
+        {/* MODAL */}
         {selectedProject && (
           <div className="absolute inset-0 bg-black/50 z-50 flex items-end animate-in fade-in duration-200">
             <div className="bg-white w-full h-[85%] rounded-t-[2.5rem] p-6 flex flex-col animate-in slide-in-from-bottom duration-300 shadow-2xl">
               
-              <div className="flex justify-between items-start mb-6">
+              <div className="flex justify-between items-start mb-4">
                  <div>
-                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Applicants for</p>
+                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">
+                       {viewMode === 'applicants' ? 'All Applicants' : 'Shortlisted Candidates'}
+                   </p>
                    <h3 className="text-lg font-black text-[#8C1515] leading-tight mt-1 line-clamp-2">{selectedProject.title}</h3>
                  </div>
                  <button onClick={() => setSelectedProject(null)} className="bg-gray-100 p-2 rounded-full text-gray-500 hover:bg-gray-200">
@@ -187,20 +199,22 @@ export default function MyProjectsPage() {
               </div>
 
               <div className="flex-1 overflow-y-auto pr-2">
-                 {loadingApplicants ? (
-                    <p className="text-center text-xs text-gray-400 mt-10">Loading applicants...</p>
-                 ) : applicants.length === 0 ? (
+                 {loadingList ? (
+                    <p className="text-center text-xs text-gray-400 mt-10">Loading list...</p>
+                 ) : studentList.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-40 text-gray-400">
                        <Users size={32} className="mb-2 opacity-20" />
-                       <p className="text-xs font-bold">No applicants yet.</p>
+                       <p className="text-xs font-bold">No {viewMode} found.</p>
                     </div>
                  ) : (
                     <div className="space-y-3">
-                       {applicants.map((student) => (
+                       {studentList.map((student) => (
                           <div 
                             key={student.student_id} 
                             onClick={() => router.push(`/dashboard/faculty/student-profile/${student.student_id}`)}
-                            className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100 hover:border-[#8C1515] cursor-pointer group"
+                            className={`flex items-center gap-3 bg-gray-50 p-3 rounded-xl border cursor-pointer group ${
+                                viewMode === 'shortlisted' ? 'border-green-200 bg-green-50/30' : 'border-gray-100 hover:border-[#8C1515]'
+                            }`}
                           >
                              <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
                                 {student.profile_picture ? (
@@ -217,18 +231,17 @@ export default function MyProjectsPage() {
                                 <p className="text-[10px] text-gray-500 truncate">{student.roll_no} • {student.department}</p>
                              </div>
 
+                             {viewMode === 'shortlisted' && <CheckCircle size={16} className="text-green-600" />}
                              <ChevronRight size={16} className="text-gray-300 group-hover:text-[#8C1515]" />
                           </div>
                        ))}
                     </div>
                  )}
               </div>
-
             </div>
           </div>
         )}
 
-        {/* Floating Add Button */}
         <div className="absolute bottom-6 right-6 z-10">
            <button 
              onClick={() => router.push('/dashboard/faculty/profile/research')}
