@@ -7,6 +7,7 @@ export interface ProjectStats {
   active_projects: number;
   total_applicants: number;
   interviews_set: number;
+  total_shortlisted: number; // <--- ADD THIS LINE TO FIX THE RED LINE
 }
 
 export interface FacultyProject {
@@ -16,8 +17,8 @@ export interface FacultyProject {
   domain: string;
   posted_date: string;
   applicant_count: number;
+  shortlisted_count: number; // <--- Ensure this is also here
 }
-
 export interface Applicant {
   student_id: string;
   name: string;
@@ -83,6 +84,7 @@ export interface FacultyDashboardData {
   };
   recommended_students: RecommendedStudent[];
   faculty_collaborations: FacultyCollaboration[];
+  active_openings: { id: string; title: string }[]; // <-- Added this
 }
 
 export interface CollabProject {
@@ -161,15 +163,17 @@ export interface FacultyProfile {
 
 export const facultyDashboardService = {
   // ---- Students ----
-  getAllStudents: async (search?: string): Promise<StudentListItem[]> => {
-    const params = new URLSearchParams();
-    if (search) params.append("search", search);
+  getAllStudents: async (search?: string, department?: string, batch?: string): Promise<StudentListItem[]> => {
+      const params = new URLSearchParams();
+      if (search) params.append("search", search);
+      if (department) params.append("department", department);
+      if (batch) params.append("batch", batch);
 
-    const { data } = await api.get(
-      `/dashboard/faculty/all-students?${params.toString()}`
-    );
-    return data;
-  },
+      const { data } = await api.get(
+        `/dashboard/faculty/all-students?${params.toString()}`
+      );
+      return data;
+    },
 
   getStudentProfile: async (
     studentId: string
@@ -180,16 +184,18 @@ export const facultyDashboardService = {
     return data;
   },
 
-  shortlistStudent: async (studentId: string): Promise<any> => {
-    const { data } = await api.post(`/dashboard/shortlist/${studentId}`);
-    return data;
-  },
+  shortlistStudent: async (studentId: string, openingId: string): Promise<any> => {
+      // Passing openingId in the body
+      const { data } = await api.post(`/dashboard/shortlist/${studentId}`, { opening_id: openingId });
+      return data;
+    },
 
   // ---- Faculty Dashboard ----
-  getFacultyHome: async (): Promise<FacultyDashboardData> => {
-    const { data } = await api.get("/dashboard/faculty/home");
-    return data;
-  },
+  getFacultyHome: async (filter?: string): Promise<FacultyDashboardData> => {
+      const url = filter ? `/dashboard/faculty/home?filter=${filter}` : "/dashboard/faculty/home";
+      const { data } = await api.get(url);
+      return data;
+    },
 
   getFacultyMenu: async (): Promise<FacultyMenuData> => {
     const { data } = await api.get("/dashboard/faculty/menu");
@@ -235,15 +241,17 @@ uploadImage: async (file: File) => {
     });
     return data;
   },
-  getMyProjects: async (): Promise<{ stats: ProjectStats; projects: FacultyProject[] }> => {
-    // Note: ensure your backend router prefix matches this URL
-    // If you mounted faculty_projects router under /faculty-projects in main.py:
+getMyProjects: async (): Promise<{ stats: ProjectStats; projects: FacultyProject[] }> => {
     const { data } = await api.get("/faculty-projects/my-projects");
     return data;
   },
 
-  getProjectApplicants: async (projectId: string): Promise<Applicant[]> => {
+getProjectApplicants: async (projectId: string): Promise<Applicant[]> => {
     const { data } = await api.get(`/faculty-projects/my-projects/${projectId}/applicants`);
+    return data;
+  },
+  getProjectShortlisted: async (projectId: string): Promise<Applicant[]> => {
+    const { data } = await api.get(`/faculty-projects/my-projects/${projectId}/shortlisted`);
     return data;
   },
 };
