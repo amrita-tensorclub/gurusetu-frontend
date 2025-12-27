@@ -16,6 +16,11 @@ export default function AllStudentsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
+  // --- Filter State ---
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [selectedDept, setSelectedDept] = useState<string>('');
+  const [selectedBatch, setSelectedBatch] = useState<string>('');
+
   // --- Modal State ---
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [studentProfile, setStudentProfile] = useState<StudentPublicProfile | null>(null);
@@ -23,12 +28,13 @@ export default function AllStudentsPage() {
   // --- Load Data ---
   useEffect(() => {
     loadStudents();
-  }, [search]); // Reload when search changes
+  }, [search]); // Auto-reload on search typing
 
   const loadStudents = async () => {
     setLoading(true);
     try {
-      const data = await facultyDashboardService.getAllStudents(search);
+      // Pass Search AND Filters to Service
+      const data = await facultyDashboardService.getAllStudents(search, selectedDept, selectedBatch);
       setStudents(data);
     } catch (err) {
       console.error(err);
@@ -36,6 +42,23 @@ export default function AllStudentsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const applyFilters = () => {
+    setIsFilterOpen(false);
+    loadStudents(); // Reload data with new filters
+    toast.success("Filters applied");
+  };
+
+  const clearFilters = () => {
+    setSelectedDept('');
+    setSelectedBatch('');
+    setIsFilterOpen(false);
+    // We need to trigger a reload, calling loadStudents directly here won't see the state update immediately
+    // so we can just reload manually or set state and let an effect handle it. 
+    // For simplicity, we just reset state and call API with empty strings.
+    facultyDashboardService.getAllStudents(search, '', '').then(setStudents);
+    toast.success("Filters cleared");
   };
 
   // --- Open Profile ---
@@ -76,7 +99,12 @@ export default function AllStudentsPage() {
                    onChange={(e) => setSearch(e.target.value)}
                  />
               </div>
-              <button className="bg-white/10 p-2.5 rounded-xl border border-white/20 text-white">
+              <button 
+                onClick={() => setIsFilterOpen(true)}
+                className={`p-2.5 rounded-xl border border-white/20 text-white transition-colors ${
+                    (selectedDept || selectedBatch) ? 'bg-white text-[#8C1515]' : 'bg-white/10'
+                }`}
+              >
                  <Filter size={16} />
               </button>
            </div>
@@ -85,6 +113,14 @@ export default function AllStudentsPage() {
         {/* --- STUDENTS LIST --- */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3 pb-24 scrollbar-hide bg-[#F2F2F2]">
            
+           {/* Active Filter Indicators */}
+           {(selectedDept || selectedBatch) && (
+               <div className="flex gap-2 mb-2 overflow-x-auto scrollbar-hide">
+                   {selectedDept && <span className="text-[10px] bg-[#e3f2fd] text-blue-700 px-2 py-1 rounded-md font-bold whitespace-nowrap">Dept: {selectedDept}</span>}
+                   {selectedBatch && <span className="text-[10px] bg-[#fff3e0] text-orange-700 px-2 py-1 rounded-md font-bold whitespace-nowrap">Batch: {selectedBatch}</span>}
+               </div>
+           )}
+
            {loading && <p className="text-center text-xs text-gray-400 mt-10">Loading...</p>}
            
            {!loading && students.length === 0 && (
@@ -136,48 +172,101 @@ export default function AllStudentsPage() {
            <div className="h-10"></div>
         </div>
 
-        {/* --- STUDENT PROFILE MODAL --- */}
+        {/* --- FILTER BOTTOM SHEET --- */}
+        {isFilterOpen && (
+           <div className="absolute inset-0 bg-black/60 z-40 flex items-end animate-in fade-in duration-200">
+              <div className="bg-white w-full rounded-t-[2rem] p-6 animate-in slide-in-from-bottom duration-300">
+                 <div className="flex justify-between items-center mb-6">
+                    <h3 className="font-black text-lg text-gray-800">Filter Students</h3>
+                    <button onClick={() => setIsFilterOpen(false)} className="bg-gray-100 p-1.5 rounded-full"><X size={18}/></button>
+                 </div>
+                 
+                 <div className="space-y-6">
+                    {/* Department Filter */}
+                    <div>
+                       <label className="text-xs font-bold text-gray-400 uppercase mb-2 block">Department</label>
+                       <div className="flex flex-wrap gap-2">
+                          {['CSE', 'ECE', 'ME', 'Civil', 'AI', 'EEE'].map(dept => (
+                             <button 
+                                key={dept}
+                                onClick={() => setSelectedDept(selectedDept === dept ? '' : dept)}
+                                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                                    selectedDept === dept 
+                                    ? 'bg-[#8C1515] text-white shadow-md' 
+                                    : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                                }`}
+                             >
+                                {dept}
+                             </button>
+                          ))}
+                       </div>
+                    </div>
+
+                    {/* Batch Filter */}
+                    <div>
+                       <label className="text-xs font-bold text-gray-400 uppercase mb-2 block">Batch</label>
+                       <div className="flex flex-wrap gap-2">
+                          {['2023', '2024', '2025', '2026'].map(batch => (
+                             <button 
+                                key={batch}
+                                onClick={() => setSelectedBatch(selectedBatch === batch ? '' : batch)}
+                                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                                    selectedBatch === batch 
+                                    ? 'bg-[#8C1515] text-white shadow-md' 
+                                    : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                                }`}
+                             >
+                                {batch}
+                             </button>
+                          ))}
+                       </div>
+                    </div>
+                 </div>
+
+                 <div className="flex gap-3 mt-8">
+                    <button 
+                       onClick={clearFilters}
+                       className="flex-1 bg-gray-100 text-gray-600 py-3 rounded-xl font-black text-xs uppercase"
+                    >
+                       Clear
+                    </button>
+                    <button 
+                       onClick={applyFilters}
+                       className="flex-[2] bg-[#8C1515] text-white py-3 rounded-xl font-black text-xs uppercase shadow-lg"
+                    >
+                       Apply Filters
+                    </button>
+                 </div>
+              </div>
+           </div>
+        )}
+
+        {/* --- STUDENT PROFILE MODAL (Existing Code) --- */}
         {selectedStudentId && (
           <div className="absolute inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center animate-in fade-in duration-200">
              <div className="bg-white w-full h-[85%] sm:h-[90%] rounded-t-[2rem] sm:rounded-[2rem] overflow-hidden relative animate-in slide-in-from-bottom duration-300 flex flex-col shadow-2xl">
-                
                 {/* Modal Header */}
                 <div className="bg-[#8C1515] h-32 relative flex-shrink-0">
-                   <button 
-                     onClick={() => setSelectedStudentId(null)} 
-                     className="absolute top-4 right-4 bg-white/20 p-2 rounded-full text-white hover:bg-white/30"
-                   >
+                   <button onClick={() => setSelectedStudentId(null)} className="absolute top-4 right-4 bg-white/20 p-2 rounded-full text-white hover:bg-white/30">
                       <X size={20} />
                    </button>
                 </div>
-
                 {/* Profile Picture */}
                 <div className="-mt-12 flex justify-center mb-2">
                    <div className="w-24 h-24 rounded-full border-4 border-white bg-gray-200 overflow-hidden shadow-lg">
-                      <img 
-                        src={studentProfile?.info.profile_picture || "https://avatar.iran.liara.run/public"} 
-                        className="w-full h-full object-cover" 
-                      />
+                      <img src={studentProfile?.info.profile_picture || "https://avatar.iran.liara.run/public"} className="w-full h-full object-cover" />
                    </div>
                 </div>
-
                 {/* Scrollable Content */}
                 {studentProfile ? (
                    <div className="flex-1 overflow-y-auto px-6 pb-8 text-center scrollbar-hide">
                       <h2 className="text-xl font-black text-gray-900 leading-tight">{studentProfile.info.name}</h2>
                       <p className="text-xs font-bold text-[#8C1515] mt-1">{studentProfile.info.roll_no}</p>
                       <p className="text-[10px] text-gray-400 font-bold">{studentProfile.info.department} | {studentProfile.info.batch}</p>
-                      
-                      <p className="text-xs text-gray-600 mt-4 leading-relaxed px-4 italic">
-                        "{studentProfile.info.bio}"
-                      </p>
-
+                      <p className="text-xs text-gray-600 mt-4 leading-relaxed px-4 italic">"{studentProfile.info.bio}"</p>
                       <div className="flex justify-center flex-wrap gap-2 mt-4 mb-6">
-                         {studentProfile.info.skills.map(s => (
-                            <span key={s} className="bg-red-50 text-[#8C1515] px-2 py-1 rounded-md text-[10px] font-bold">{s}</span>
-                         ))}
+                         {studentProfile.info.skills.map(s => (<span key={s} className="bg-red-50 text-[#8C1515] px-2 py-1 rounded-md text-[10px] font-bold">{s}</span>))}
                       </div>
-
                       <div className="text-left mb-6 bg-gray-50 p-4 rounded-xl border border-gray-100">
                          <h3 className="text-[#8C1515] font-black text-xs uppercase tracking-widest mb-3">Projects</h3>
                          <div className="space-y-3">
@@ -191,17 +280,12 @@ export default function AllStudentsPage() {
                             ))}
                          </div>
                       </div>
-
                       <div className="flex gap-2 justify-center mt-4">
-                          <button className="flex items-center gap-2 bg-[#8C1515] text-white px-6 py-3 rounded-xl font-bold text-xs shadow-md active:scale-95 transition-transform">
-                             <Mail size={16} /> Contact Student
-                          </button>
+                          <button className="flex items-center gap-2 bg-[#8C1515] text-white px-6 py-3 rounded-xl font-bold text-xs shadow-md active:scale-95 transition-transform"><Mail size={16} /> Contact Student</button>
                       </div>
                    </div>
                 ) : (
-                   <div className="flex justify-center items-center h-40">
-                      <p className="text-xs font-bold text-gray-400 animate-pulse">Loading Profile...</p>
-                   </div>
+                   <div className="flex justify-center items-center h-40"><p className="text-xs font-bold text-gray-400 animate-pulse">Loading Profile...</p></div>
                 )}
              </div>
           </div>
