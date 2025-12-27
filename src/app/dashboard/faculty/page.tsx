@@ -218,7 +218,7 @@ export default function FacultyDashboard() {
               <div className="py-2">
                 <MenuLink icon={Home} label="Home" onClick={() => handleNavigation('/dashboard/faculty')} active />
                 <MenuLink icon={User} label="Profile" onClick={() => handleNavigation('/dashboard/faculty/profile')} />
-                <MenuLink icon={Folder} label="My Projects" onClick={() => handleNavigation('/dashboard/faculty/projects')} />
+                <MenuLink icon={Folder} label="My Openings" onClick={() => handleNavigation('/dashboard/faculty/projects')} />
                 
                 {/* All Students Link */}
                 <MenuLink icon={Users} label="All Students" onClick={() => handleNavigation('/dashboard/faculty/all-students')} />
