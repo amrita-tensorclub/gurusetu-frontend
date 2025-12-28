@@ -111,7 +111,7 @@ export default function StudentDashboard() {
               <div className="p-2 py-4 space-y-1">
                 <MenuLink icon={Home} label="Home" onClick={() => handleNavigation('/dashboard/student')} active />
                 <MenuLink icon={User} label="Profile" onClick={() => handleNavigation('/dashboard/student/profile')} />
-                <MenuLink icon={Folder} label="My Openings" onClick={() => handleNavigation('/dashboard/student/projects')} />
+                <MenuLink icon={Folder} label="Track Openings" onClick={() => handleNavigation('/dashboard/student/projects')} />
                 <MenuLink icon={HelpCircle} label="Help & Support" onClick={() => handleNavigation('/dashboard/student/support')} />
                 <MenuLink icon={Users} label="All Faculty" onClick={() => handleNavigation('/dashboard/student/all-faculty')} />
                 <button onClick={handleLogout} className="w-full flex items-center gap-4 p-4 text-[#8C1515] font-bold text-sm hover:bg-red-50 rounded-r-full transition-colors mt-4">

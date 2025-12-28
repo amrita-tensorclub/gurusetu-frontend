@@ -1,6 +1,15 @@
 import api from './api';
 
 // ... (Keep existing ProjectCreate, PublicationItem, StudentProfileData interfaces) ...
+export interface ApplicationItem {
+  id: string;
+  title: string;
+  faculty_name: string;
+  department: string;
+  faculty_pic?: string;
+  status: 'Pending' | 'Shortlisted' | 'Rejected';
+  applied_date: string;
+}
 
 export interface NotificationItem {
   id: string;
@@ -96,6 +105,10 @@ export const dashboardService = {
 
   markNotificationRead: async (notifId: string) => {
     const { data } = await api.put(`/notifications/${notifId}/read`);
+    return data;
+  },
+  getStudentApplications: async () => {
+    const { data } = await api.get('/dashboard/student/applications');
     return data;
   }
 };

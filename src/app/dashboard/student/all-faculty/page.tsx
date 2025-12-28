@@ -18,6 +18,9 @@ export default function AllFacultyPage() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState('All');
 
+  // Define departments list
+  const departments = ['All', 'CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'AI&DS', 'IT', 'BME', 'CSBS'];
+
   // Load List
   useEffect(() => {
     loadFaculty();
@@ -49,6 +52,16 @@ export default function AllFacultyPage() {
     }
   };
 
+  // Helper to safely combine qualifications
+  const getQualifications = (info: any) => {
+    if (!info) return [];
+    return [
+      ...(info.phd_details || []),
+      ...(info.pg_details || []),
+      ...(info.ug_details || [])
+    ];
+  };
+
   return (
     <div className="min-h-screen bg-[#e0e0e0] flex items-center justify-center py-8 font-sans">
       <Toaster position="top-center" />
@@ -61,7 +74,7 @@ export default function AllFacultyPage() {
            <div className="flex items-center gap-3 mb-4">
               <button onClick={() => router.back()}><ChevronLeft size={24} /></button>
               <h1 className="text-xl font-black tracking-tight">All Faculty</h1>
-              <div className="ml-auto"><Search size={24} /></div>
+              {/* Removed top right Search icon here */}
            </div>
 
            {/* Search Bar */}
@@ -136,7 +149,7 @@ export default function AllFacultyPage() {
                     <div>
                        <label className="text-xs font-bold text-gray-400 uppercase mb-2 block">Department</label>
                        <div className="flex flex-wrap gap-2">
-                          {['All', 'CSE', 'ECE', 'MECH', 'Civil'].map(dept => (
+                          {departments.map(dept => (
                              <button 
                                key={dept}
                                onClick={() => setActiveFilter(dept)}
@@ -164,116 +177,108 @@ export default function AllFacultyPage() {
         {/* --- DETAIL PROFILE MODAL (FULL SCREEN OVERLAY) --- */}
         {selectedFacultyId && (
           <div className="absolute inset-0 bg-white z-50 overflow-y-auto animate-in slide-in-from-right duration-300">
-             
-             {/* Modal Header */}
-             <div className="relative h-40 bg-[#F9F9F9] flex justify-center items-end pb-0 border-b border-gray-100">
-                <button 
-                  onClick={() => setSelectedFacultyId(null)} 
-                  className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-sm text-gray-500"
-                >
-                   <X size={20} />
-                </button>
-                <div className="absolute -bottom-10 border-4 border-white rounded-full overflow-hidden shadow-lg w-24 h-24 bg-gray-200">
-                   <img 
-                      src={profileData?.info.profile_picture || "https://avatar.iran.liara.run/public/boy"} 
-                      className="w-full h-full object-cover" 
-                   />
-                </div>
-             </div>
+              
+              {/* Modal Header */}
+              <div className="relative h-40 bg-[#F9F9F9] flex justify-center items-end pb-0 border-b border-gray-100">
+                 <button 
+                   onClick={() => setSelectedFacultyId(null)} 
+                   className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-sm text-gray-500"
+                 >
+                    <X size={20} />
+                 </button>
+                 <div className="absolute -bottom-10 border-4 border-white rounded-full overflow-hidden shadow-lg w-24 h-24 bg-gray-200">
+                    <img 
+                       src={profileData?.info.profile_picture || "https://avatar.iran.liara.run/public/boy"} 
+                       className="w-full h-full object-cover" 
+                    />
+                 </div>
+              </div>
 
-             {/* Profile Content */}
-             {profileData ? (
-                <div className="px-6 pt-12 pb-10 text-center">
-                   
-                   {/* Name & Title */}
-                   <h2 className="text-xl font-black text-gray-900 leading-tight">{profileData.info.name}</h2>
-                   <p className="text-xs font-bold text-[#8C1515] mt-1">{profileData.info.designation}</p>
-                   <p className="text-[10px] text-gray-400 font-bold">{profileData.info.department}</p>
-                   
-                   {/* Tags (Qualifications) */}
-                   <div className="flex justify-center gap-2 mt-3 mb-5">
-                      {profileData.info.qualifications.map((q, i) => (
-                         <span key={i} className="bg-gray-100 text-gray-600 px-2 py-1 rounded-md text-[9px] font-bold">
-                            {q}
-                         </span>
-                      ))}
-                   </div>
+              {/* Profile Content */}
+              {profileData ? (
+                 <div className="px-6 pt-12 pb-10 text-center">
+                    
+                    {/* Name & Title */}
+                    <h2 className="text-xl font-black text-gray-900 leading-tight">{profileData.info.name}</h2>
+                    <p className="text-xs font-bold text-[#8C1515] mt-1">{profileData.info.designation}</p>
+                    <p className="text-[10px] text-gray-400 font-bold">{profileData.info.department}</p>
+                    
+                    {/* Tags (Qualifications) */}
+                    <div className="flex justify-center flex-wrap gap-2 mt-3 mb-5">
+                       {getQualifications(profileData.info).map((q, i) => (
+                          <span key={i} className="bg-gray-100 text-gray-600 px-2 py-1 rounded-md text-[9px] font-bold">
+                             {q}
+                          </span>
+                       ))}
+                    </div>
 
-                   {/* Contact Info Cards */}
-                   <div className="space-y-2 mb-6">
-                      <div className="border border-red-100 bg-red-50/50 rounded-xl p-3 flex items-center gap-3">
-                         <Mail size={16} className="text-[#8C1515]" />
-                         <span className="text-xs font-bold text-[#8C1515]">{profileData.info.email}</span>
-                      </div>
-                      <div className="border border-gray-100 bg-gray-50 rounded-xl p-3 flex items-center gap-3">
-                         <MapPin size={16} className="text-gray-500" />
-                         <div className="text-left">
-                            <p className="text-[9px] font-bold text-gray-400 uppercase">Cabin Location</p>
-                            <p className="text-xs font-bold text-gray-700">{profileData.info.cabin_location}</p>
-                         </div>
-                      </div>
-                   </div>
+                    {/* Contact Info Cards */}
+                    <div className="space-y-2 mb-6">
+                       <div className="border border-red-100 bg-red-50/50 rounded-xl p-3 flex items-center gap-3">
+                          <Mail size={16} className="text-[#8C1515]" />
+                          <span className="text-xs font-bold text-[#8C1515]">{profileData.info.email}</span>
+                       </div>
+                       <div className="border border-gray-100 bg-gray-50 rounded-xl p-3 flex items-center gap-3">
+                          <MapPin size={16} className="text-gray-500" />
+                          <div className="text-left">
+                             <p className="text-[9px] font-bold text-gray-400 uppercase">Cabin Location</p>
+                             <p className="text-xs font-bold text-gray-700">
+                               {profileData.info.cabin_block || ""} {profileData.info.cabin_floor ? `, Floor ${profileData.info.cabin_floor}` : ""} {profileData.info.cabin_number || ""}
+                             </p>
+                          </div>
+                       </div>
+                    </div>
 
-                   {/* Research Interests */}
-                   <div className="text-left mb-6">
-                      <h3 className="text-[#8C1515] font-black text-xs uppercase tracking-widest mb-3">Research Interests</h3>
-                      <div className="flex flex-wrap gap-2">
-                         {profileData.info.interests.map(int => (
-                            <span key={int} className="border border-[#8C1515] text-[#8C1515] px-3 py-1.5 rounded-full text-[10px] font-bold">
-                               {int}
-                            </span>
-                         ))}
-                      </div>
-                   </div>
+                    {/* Research Interests */}
+                    <div className="text-left mb-6">
+                       <h3 className="text-[#8C1515] font-black text-xs uppercase tracking-widest mb-3">Research Interests</h3>
+                       <div className="flex flex-wrap gap-2">
+                          {profileData.info.interests.map(int => (
+                             <span key={int} className="border border-[#8C1515] text-[#8C1515] px-3 py-1.5 rounded-full text-[10px] font-bold">
+                                {int}
+                             </span>
+                          ))}
+                       </div>
+                    </div>
 
-                   {/* Current Openings */}
-                   <div className="text-left mb-6">
-                      <h3 className="text-[#8C1515] font-black text-xs uppercase tracking-widest mb-3">Current Openings</h3>
-                      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                         {profileData.openings.length === 0 && <p className="text-xs text-gray-400">No current openings.</p>}
-                         {profileData.openings.map(op => (
-                            <div key={op.id} className="min-w-[200px] bg-white border border-gray-200 p-4 rounded-xl shadow-sm">
-                               <p className="text-[9px] font-bold text-gray-400 uppercase mb-1">{op.type}</p>
-                               <h4 className="font-bold text-sm text-gray-800 leading-tight mb-2">{op.title}</h4>
-                               <button className="text-[#8C1515] text-[10px] font-black underline">View Details</button>
-                            </div>
-                         ))}
-                      </div>
-                   </div>
-                   
-                   {/* Previous Work */}
-                   <div className="text-left mb-6">
-                      <h3 className="text-[#8C1515] font-black text-xs uppercase tracking-widest mb-3">Previous Work</h3>
-                      <div className="space-y-3">
-                         {profileData.previous_work.map((work, i) => (
-                            <div key={i} className="flex gap-3 items-start">
-                               <div className="mt-1 w-1.5 h-1.5 rounded-full bg-gray-300"></div>
-                               <div>
-                                  <p className="text-xs font-bold text-gray-800 leading-tight">{work.title}</p>
-                                  <p className="text-[10px] text-gray-400 font-medium">({work.type})</p>
-                               </div>
-                            </div>
-                         ))}
-                      </div>
-                   </div>
-
-                   {/* Action Buttons */}
-                   <div className="flex gap-3 mt-8">
-                      <button className="flex-1 bg-[#8C1515] text-white py-3 rounded-xl font-black text-xs shadow-lg active:scale-95 transition-transform">
-                         Navigate to Cabin
-                      </button>
-                      <button className="flex-1 border-2 border-[#8C1515] text-[#8C1515] py-3 rounded-xl font-black text-xs active:scale-95 transition-transform">
-                         Request Meeting
-                      </button>
-                   </div>
-                   
-                   <div className="h-10"></div>
-                </div>
-             ) : (
-                <div className="flex justify-center items-center h-40">
-                   <p className="text-xs font-bold text-gray-400 animate-pulse">Loading Profile...</p>
-                </div>
-             )}
+                    {/* Current Openings */}
+                    <div className="text-left mb-6">
+                       <h3 className="text-[#8C1515] font-black text-xs uppercase tracking-widest mb-3">Current Openings</h3>
+                       <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                          {profileData.openings.length === 0 && <p className="text-xs text-gray-400">No current openings.</p>}
+                          {profileData.openings.map(op => (
+                             <div key={op.id} className="min-w-[200px] bg-white border border-gray-200 p-4 rounded-xl shadow-sm">
+                                <p className="text-[9px] font-bold text-gray-400 uppercase mb-1">{op.type}</p>
+                                <h4 className="font-bold text-sm text-gray-800 leading-tight mb-2">{op.title}</h4>
+                                <button className="text-[#8C1515] text-[10px] font-black underline">View Details</button>
+                             </div>
+                          ))}
+                       </div>
+                    </div>
+                    
+                    {/* Previous Work */}
+                    <div className="text-left mb-6">
+                       <h3 className="text-[#8C1515] font-black text-xs uppercase tracking-widest mb-3">Previous Work</h3>
+                       <div className="space-y-3">
+                          {profileData.previous_work.map((work, i) => (
+                             <div key={i} className="flex gap-3 items-start">
+                                <div className="mt-1 w-1.5 h-1.5 rounded-full bg-gray-300"></div>
+                                <div>
+                                   <p className="text-xs font-bold text-gray-800 leading-tight">{work.title}</p>
+                                   <p className="text-[10px] text-gray-400 font-medium">({work.type})</p>
+                                </div>
+                             </div>
+                          ))}
+                       </div>
+                    </div>
+                    
+                    <div className="h-10"></div>
+                 </div>
+              ) : (
+                 <div className="flex justify-center items-center h-40">
+                    <p className="text-xs font-bold text-gray-400 animate-pulse">Loading Profile...</p>
+                 </div>
+              )}
           </div>
         )}
       </div>
