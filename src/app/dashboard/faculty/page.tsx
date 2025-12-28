@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { Menu, Bell, ChevronRight, X, Mail, MapPin } from 'lucide-react'; 
+import { Menu, Bell, ChevronRight, X, Mail, MapPin, LogOut } from 'lucide-react'; 
 import { useRouter } from 'next/navigation';
 import { 
   facultyDashboardService, 
@@ -53,11 +53,10 @@ export default function FacultyDashboard() {
   };
 
   // --- MENU ACTIONS ---
-  const handleLogout = () => {
-    localStorage.clear(); // Clear all data
-    toast.success("Logged out successfully");
-    router.push('/login'); // Ensure you have a /login page
-  };
+const handleLogout = () => {
+  sessionStorage.clear(); // Changed from localStorage
+  router.push('/login');
+};
 
   const handleMenuClick = (route: string) => {
     if (route === '/logout') {
@@ -135,7 +134,7 @@ export default function FacultyDashboard() {
                  <p className="text-white/80 text-xs font-medium">{menuData?.department}</p>
               </div>
               
-              {/* Menu List - UPDATED LOGIC */}
+              {/* Menu List */}
               <div className="py-2 px-4 space-y-2 mt-2">
                  {menuData?.menu_items.map((item, idx) => (
                     <button 
@@ -150,14 +149,14 @@ export default function FacultyDashboard() {
                        <span className="flex items-center gap-3">
                           {item.label}
                        </span>
-                       <ChevronRight size={16} className="text-gray-400" />
+                       {item.label === 'Logout' ? <LogOut size={16} /> : <ChevronRight size={16} className="text-gray-400" />}
                     </button>
                  ))}
               </div>
            </div>
         </div>
 
-        {/* --- 2. MAIN HEADER --- */}
+        {/* --- 2. MAIN HEADER (WITH NOTIFICATION BADGE) --- */}
         <div className="bg-[#8C1515] text-white p-6 pt-12 pb-6 shadow-md z-10 flex justify-between items-start">
            <div>
              <button onClick={() => setMenuOpen(true)} className="mb-4">
@@ -168,8 +167,19 @@ export default function FacultyDashboard() {
            </div>
            
            <div className="flex gap-4 items-center mt-1">
-              <button onClick={() => router.push('/dashboard/faculty/notifications')}>
-                 <Bell size={20} />
+              <button 
+                onClick={() => router.push('/dashboard/faculty/notifications')}
+                className="relative p-1"
+              >
+                 <Bell size={24} />
+                 
+                 {/* --- NOTIFICATION BADGE --- */}
+                 {data && data.unread_count > 0 && (
+                   <div className="absolute -top-1 -right-1 bg-[#D4AF37] text-[#8C1515] text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-[#8C1515] shadow-sm animate-bounce">
+                     {data.unread_count > 9 ? '9+' : data.unread_count}
+                   </div>
+                 )}
+
               </button>
            </div>
         </div>
@@ -203,7 +213,6 @@ export default function FacultyDashboard() {
                   data?.recommended_students.map(student => (
                    <div key={student.student_id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative">
                       
-                      {/* FIX: Alignment of Profile & Match Score */}
                       <div className="flex justify-between items-start mb-4">
                          <div 
                            onClick={() => openStudentProfile(student.student_id)}
@@ -214,7 +223,8 @@ export default function FacultyDashboard() {
                             </div>
                             <div>
                                <h3 className="text-gray-900 font-black text-sm group-hover:text-[#8C1515] transition-colors">{student.name}</h3>
-                               <p className="text-gray-500 text-xs font-bold">{student.department}, {student.batch}</p>
+                               {/* FIX 2: Added student.batch, and interface now supports it */}
+                               <p className="text-gray-500 text-xs font-bold">{student.department}, {student.batch || 'Batch N/A'}</p>
                             </div>
                          </div>
                          
@@ -226,26 +236,27 @@ export default function FacultyDashboard() {
                       </div>
 
                       <div className="flex flex-wrap gap-1.5 mb-5">
-                         {student.matched_skills.slice(0,3).map(skill => (
+                          {/* FIX 1: Added fallback array to prevent crash */}
+                          {(student.matched_skills || []).slice(0,3).map(skill => (
                            <span key={skill} className="bg-[#8C1515] text-white px-2 py-0.5 rounded-md text-[9px] font-bold">
                              {skill}
                            </span>
-                         ))}
+                          ))}
                       </div>
                       
                       <div className="flex gap-3">
-                         <button 
-                            onClick={() => openStudentProfile(student.student_id)}
-                            className="flex-1 border-2 border-[#8C1515] text-[#8C1515] py-2.5 rounded-xl font-black text-[10px] uppercase active:scale-95 transition-transform"
-                         >
-                           View Profile
-                         </button>
-                         <button 
-                           onClick={() => handleShortlistClick(student.student_id)}
-                           className="flex-1 bg-[#8C1515] text-white py-2.5 rounded-xl font-black text-[10px] uppercase shadow-md active:scale-95 transition-transform"
-                         >
-                           Shortlist
-                         </button>
+                          <button 
+                             onClick={() => openStudentProfile(student.student_id)}
+                             className="flex-1 border-2 border-[#8C1515] text-[#8C1515] py-2.5 rounded-xl font-black text-[10px] uppercase active:scale-95 transition-transform"
+                          >
+                            View Profile
+                          </button>
+                          <button 
+                            onClick={() => handleShortlistClick(student.student_id)}
+                            className="flex-1 bg-[#8C1515] text-white py-2.5 rounded-xl font-black text-[10px] uppercase shadow-md active:scale-95 transition-transform"
+                          >
+                            Shortlist
+                          </button>
                       </div>
                    </div>
                  ))}
@@ -330,7 +341,7 @@ export default function FacultyDashboard() {
            </div>
         )}
 
-        {/* --- 5. STUDENT & FACULTY PROFILE OVERLAYS --- */}
+        {/* --- 5. STUDENT PROFILE OVERLAY --- */}
         {selectedStudentId && (
           <div className="absolute inset-0 bg-white z-50 overflow-y-auto animate-in slide-in-from-right duration-300">
               <div className="relative h-40 bg-[#FFF0F0] flex justify-center items-end pb-0 border-b border-gray-100">
@@ -372,6 +383,7 @@ export default function FacultyDashboard() {
           </div>
         )}
 
+        {/* --- 6. FACULTY PROFILE OVERLAY --- */}
         {selectedFacultyId && (
            <div className="absolute inset-0 bg-white z-50 overflow-y-auto animate-in slide-in-from-right duration-300">
               <div className="relative h-40 bg-[#F9F9F9] flex justify-center items-end pb-0 border-b border-gray-100">

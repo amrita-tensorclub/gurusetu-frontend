@@ -1,194 +1,212 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Camera, ChevronRight, Save, User, ChevronLeft } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { ChevronLeft, Camera, Mail, Loader2, ChevronRight, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { userService } from '@/services/userService';
+import { dashboardService, StudentProfileData } from '@/services/studentDashboardService';
 import toast, { Toaster } from 'react-hot-toast';
 
-export default function StudentProfile() {
+export default function StudentProfilePage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Form State
-  const [formData, setFormData] = useState({
-    name: '',
-    department: 'Computer Science (CSE)',
-    batch: '2022-2026',
-    email: '', 
-    phone: '',
-    bio: '',
-    roll_no: ''
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  
+  // Display fields
+  const [rollNo, setRollNo] = useState("");
+  const [displayEmail, setDisplayEmail] = useState("");
+
+  const [formData, setFormData] = useState<StudentProfileData>({
+    name: "",
+    phone: "",
+    email: "",
+    department: "",
+    batch: "",
+    bio: "",
+    profile_picture: "",
+    skills: [],
+    interests: [],
+    projects: [],
+    publications: []
   });
 
   useEffect(() => {
     const loadProfile = async () => {
       try {
-        const data = await userService.getProfile();
+        const userStr = localStorage.getItem("user");
+        if (!userStr) { router.push('/login'); return; }
+        
+        const u = JSON.parse(userStr);
+        const uid = u.user_id || u.user?.user_id;
+        const rNo = u.roll_no || u.user?.roll_no || "CB.SC.U4...";
+        setRollNo(rNo);
+        setDisplayEmail(u.email || `${rNo.toLowerCase()}@amrita.edu`);
+
+        const data = await dashboardService.getStudentFullProfile(uid);
+        
+        // Update State
         setFormData({
-            name: data.name || '',
-            department: data.department || 'CSE',
-            batch: '2022-2026', 
-            email: data.email || 'student@amrita.edu',
-            phone: data.phone || '',
-            bio: data.bio || '',
-            roll_no: data.roll_no || ''
+            name: data.name || "",
+            phone: data.phone || "",
+            email: data.email || "", 
+            department: data.department || "Computer Science (CSE)",
+            batch: data.batch || "3rd Year / 2022-2026",
+            bio: data.bio || "",
+            profile_picture: data.profile_picture || "",
+            
+            // Hidden Data Preservation
+            skills: data.skills || [],
+            interests: data.interests || [],
+            projects: data.projects || [],
+            publications: data.publications || []
         });
-      } catch (error) {
-        console.error("Failed to load profile");
+      } catch (err) {
+        toast.error("Failed to load profile");
+      } finally {
+        setLoading(false);
       }
     };
     loadProfile();
-  }, []);
+  }, [router]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleInputChange = (field: keyof StudentProfileData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSave = async () => {
-    setLoading(true);
-    try {
-      await userService.updateStudentProfile({
-        name: formData.name,
-        phone: formData.phone,
-        department: formData.department,
-        bio: formData.bio,
-        batch: formData.batch
-      });
-      toast.success('Profile Updated!');
-      setTimeout(() => router.push('/dashboard/student/profile/interests'), 1000);
-    } catch (error) {
-      toast.error('Failed to update profile');
-    } finally {
-      setLoading(false);
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      try {
+        setUploading(true);
+        const url = await dashboardService.uploadProfilePicture(file);
+        setFormData(prev => ({ ...prev, profile_picture: url }));
+        toast.success("Photo updated!");
+      } catch (err) {
+        toast.error("Upload failed");
+      } finally {
+        setUploading(false);
+      }
     }
   };
 
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      await dashboardService.updateStudentProfile(formData);
+      toast.success("Profile saved successfully!");
+    } catch (err) {
+      toast.error("Failed to save changes");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <div className="h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-[#990033]" /></div>;
+
   return (
-    // 1. OUTER CONTAINER (Gray Background)
-    <div className="min-h-screen bg-[#e0e0e0] flex items-center justify-center py-8 font-sans">
-      <Toaster position="top-center" />
-      
-      {/* 2. PHONE SIMULATOR FRAME */}
-      <div className="w-full max-w-[390px] h-[844px] bg-[#FDFBF7] rounded-[3rem] shadow-2xl border-8 border-gray-900 overflow-hidden relative flex flex-col">
-        
-        {/* 3. SCROLLABLE CONTENT AREA */}
-        <div className="flex-1 overflow-y-auto pb-40 scrollbar-hide">
-            
-            {/* Header */}
-            <div className="bg-[#8C1515] text-white p-6 pt-12 rounded-b-[2rem] shadow-lg relative">
-                <div className="flex justify-between items-center mb-4">
-                <button onClick={() => router.back()} className="text-white/80 font-bold text-sm flex items-center gap-1">
-                    <ChevronLeft size={16} /> Back
-                </button>
-                <h1 className="text-xl font-black tracking-tight">My Profile</h1>
-                <div className="w-6"></div> {/* Spacer */}
-                </div>
+    <div className="min-h-screen bg-white font-sans max-w-md mx-auto relative shadow-2xl border-x border-gray-50">
+      <Toaster position="bottom-center" />
 
-                {/* Profile Pic Section */}
-                <div className="flex flex-col items-center mt-4">
-                <div className="relative">
-                    <div className="w-28 h-28 rounded-full bg-white p-1 border-4 border-[#D4AF37] shadow-xl overflow-hidden">
-                    <img src="https://avatar.iran.liara.run/public/girl" alt="Profile" className="w-full h-full object-cover rounded-full" />
-                    </div>
-                    <button className="absolute bottom-0 right-1 bg-white text-[#8C1515] p-2 rounded-full shadow-md border border-gray-200">
-                    <Camera size={18} />
-                    </button>
-                </div>
-                <h2 className="mt-4 text-xl font-black text-white">{formData.name || "Student Name"}</h2>
-                <p className="text-white/70 text-xs font-bold">{formData.roll_no}</p>
-                </div>
-            </div>
-
-            {/* Form Section */}
-            <div className="px-6 -mt-6">
-                <div className="bg-white rounded-[2rem] shadow-xl p-6 space-y-5 border border-gray-100">
-                
-                {/* Name */}
-                <div className="space-y-1">
-                    <label className="text-[10px] font-black text-[#8C1515] uppercase tracking-widest ml-1">Name</label>
-                    <input 
-                    name="name" value={formData.name} onChange={handleChange}
-                    className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl p-3 text-sm font-bold text-gray-700 outline-none focus:border-[#8C1515] transition-colors"
-                    />
-                </div>
-
-                {/* Department */}
-                <div className="space-y-1">
-                    <label className="text-[10px] font-black text-[#8C1515] uppercase tracking-widest ml-1">Department</label>
-                    <select 
-                    name="department" value={formData.department} onChange={handleChange}
-                    className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl p-3 text-sm font-bold text-gray-700 outline-none focus:border-[#8C1515] transition-colors"
-                    >
-                    <option>Computer Science (CSE)</option>
-                    <option>Artificial Intelligence (AIE)</option>
-                    <option>Electronics (ECE)</option>
-                    </select>
-                </div>
-
-                {/* Batch */}
-                <div className="space-y-1">
-                    <label className="text-[10px] font-black text-[#8C1515] uppercase tracking-widest ml-1">Year / Batch</label>
-                    <select 
-                    name="batch" value={formData.batch} onChange={handleChange}
-                    className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl p-3 text-sm font-bold text-gray-700 outline-none focus:border-[#8C1515] transition-colors"
-                    >
-                    <option>3rd Year / 2022-2026</option>
-                    <option>2nd Year / 2023-2027</option>
-                    <option>4th Year / 2021-2025</option>
-                    </select>
-                </div>
-
-                {/* Email (Read Only) */}
-                <div className="space-y-1">
-                    <label className="text-[10px] font-black text-[#8C1515] uppercase tracking-widest ml-1">Email</label>
-                    <input 
-                    name="email" value={formData.email} readOnly
-                    className="w-full bg-gray-100 border-2 border-gray-100 rounded-xl p-3 text-sm font-bold text-gray-500 outline-none cursor-not-allowed"
-                    />
-                </div>
-
-                {/* Phone */}
-                <div className="space-y-1">
-                    <label className="text-[10px] font-black text-[#8C1515] uppercase tracking-widest ml-1">Phone Number</label>
-                    <input 
-                    name="phone" value={formData.phone} onChange={handleChange} placeholder="+91 98765 43210"
-                    className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl p-3 text-sm font-bold text-gray-700 outline-none focus:border-[#8C1515] transition-colors"
-                    />
-                </div>
-
-                {/* Bio */}
-                <div className="space-y-1">
-                    <label className="text-[10px] font-black text-[#8C1515] uppercase tracking-widest ml-1">Bio / About</label>
-                    <textarea 
-                    name="bio" value={formData.bio} onChange={handleChange} maxLength={100} rows={3}
-                    placeholder="Write a brief bio..."
-                    className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl p-3 text-sm font-bold text-gray-700 outline-none focus:border-[#8C1515] transition-colors resize-none"
-                    />
-                    <p className="text-[10px] text-right text-gray-400 font-bold">{formData.bio.length}/100</p>
-                </div>
-                </div>
-            </div>
+      {/* Header */}
+      <div className="bg-[#990033] px-5 pt-8 pb-20 relative">
+        <div className="flex justify-between items-center text-white">
+          <button onClick={() => router.back()} className="p-1 -ml-2"><ChevronLeft size={28} /></button>
+          <h1 className="text-xl font-bold">My Profile</h1>
+          {/* Spacer div to keep title centered since we removed the edit button */}
+          <div className="w-8"></div>
         </div>
+      </div>
 
-        {/* 4. ABSOLUTE FOOTER (Sticks to Phone Bottom) */}
-        <div className="absolute bottom-0 left-0 right-0 bg-white p-4 pb-8 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] rounded-t-[2rem]">
-            <button 
-            onClick={handleSave}
-            disabled={loading}
-            className="w-full bg-[#8C1515] text-white py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg active:scale-95 transition-all mb-3 flex items-center justify-center gap-2"
-            >
-            {loading ? 'Saving...' : 'Save Changes'}
+      {/* Avatar Section */}
+      <div className="-mt-14 flex flex-col items-center relative z-10">
+         <div className="relative">
+            <div className="w-28 h-28 rounded-full border-4 border-white bg-gray-200 shadow-md overflow-hidden">
+               <img src={formData.profile_picture || "https://avatar.iran.liara.run/public"} className="w-full h-full object-cover" alt="Profile" />
+            </div>
+            <button onClick={() => fileInputRef.current?.click()} disabled={uploading} className="absolute bottom-0 right-0 bg-white p-2 rounded-full shadow-md text-gray-600 hover:text-[#990033]">
+               {uploading ? <Loader2 size={16} className="animate-spin"/> : <Camera size={18} />}
             </button>
-            
-            <button 
-                onClick={() => router.push('/dashboard/student/profile/interests')}
-                className="w-full flex items-center justify-center gap-2 text-[#8C1515] font-black text-xs uppercase tracking-wider"
-            >
-                Next: Add Experience & Interests <ChevronRight size={14} />
-            </button>
-        </div>
+            <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*"/>
+         </div>
 
+         <div className="text-center mt-3 mb-6 space-y-1">
+            <h2 className="text-xl font-bold text-gray-900">{formData.name || "Student Name"}</h2>
+            <p className="text-gray-500 text-xs font-medium">{formData.department.split('(')[0]}</p>
+            <div className="flex items-center justify-center gap-1 text-gray-500 text-xs"><Mail size={12} /><span>{displayEmail}</span></div>
+            <p className="text-gray-400 text-xs">Roll Number: {rollNo}</p>
+         </div>
+      </div>
+
+      {/* Form Fields */}
+      <div className="px-6 space-y-5 pb-32">
+         
+         <div className="group">
+            <label className="block text-[#990033] text-xs font-medium mb-1 ml-1 group-focus-within:font-bold">Name</label>
+            <div className="border border-gray-300 rounded-lg px-3 py-2.5 focus-within:border-[#990033] focus-within:border-2 transition-all">
+               <input value={formData.name} onChange={e => handleInputChange('name', e.target.value)} className="w-full text-sm text-gray-900 outline-none placeholder-gray-400 font-medium"/>
+            </div>
+         </div>
+
+         <div className="group">
+            <label className="block text-[#990033] text-xs font-medium mb-1 ml-1">Department</label>
+            <div className="border border-gray-300 rounded-lg px-3 py-2.5 relative focus-within:border-[#990033] focus-within:border-2 transition-all">
+               <select value={formData.department} onChange={e => handleInputChange('department', e.target.value)} className="w-full text-sm text-gray-900 outline-none appearance-none bg-transparent font-medium">
+                  <option>Computer Science & Engineering (CSE)</option>
+                  <option>Artificial Intelligence (AIE)</option>
+                  <option>Electronics & Communication (ECE)</option>
+                  <option>Mechanical Engineering (ME)</option>
+               </select>
+               <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 rotate-90 text-gray-400 pointer-events-none" size={16} />
+            </div>
+         </div>
+
+         <div className="group">
+            <label className="block text-[#990033] text-xs font-medium mb-1 ml-1">Year / Batch</label>
+            <div className="border border-gray-300 rounded-lg px-3 py-2.5 relative focus-within:border-[#990033] focus-within:border-2 transition-all">
+               <select value={formData.batch} onChange={e => handleInputChange('batch', e.target.value)} className="w-full text-sm text-gray-900 outline-none appearance-none bg-transparent font-medium">
+                  <option>3rd Year / 2022-2026</option>
+                  <option>2nd Year / 2023-2027</option>
+                  <option>4th Year / 2021-2025</option>
+               </select>
+               <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 rotate-90 text-gray-400 pointer-events-none" size={16} />
+            </div>
+         </div>
+
+         <div className="group">
+            <label className="block text-[#990033] text-xs font-medium mb-1 ml-1">Email</label>
+            <div className="border border-gray-300 rounded-lg px-3 py-2.5 flex items-center bg-gray-50">
+               <input value={displayEmail} disabled className="w-full text-sm text-gray-900 outline-none bg-transparent font-medium"/>
+               <Mail size={18} className="text-gray-400" />
+            </div>
+         </div>
+
+         <div className="group">
+            <label className="block text-[#990033] text-xs font-medium mb-1 ml-1">Phone Number</label>
+            <div className="border border-gray-300 rounded-lg px-3 py-2.5 focus-within:border-[#990033] focus-within:border-2 transition-all">
+               <input value={formData.phone} onChange={e => handleInputChange('phone', e.target.value)} placeholder="Enter phone number" className="w-full text-sm text-gray-900 outline-none placeholder-gray-400 font-medium"/>
+            </div>
+         </div>
+
+         <div className="group">
+            <label className="block text-[#990033] text-xs font-medium mb-1 ml-1">Bio / About</label>
+            <div className="border border-gray-300 rounded-lg px-3 py-2.5 focus-within:border-[#990033] focus-within:border-2 transition-all">
+               <textarea value={formData.bio} onChange={e => handleInputChange('bio', e.target.value)} maxLength={100} rows={2} placeholder="Write a brief bio (max 100 characters)" className="w-full text-sm text-gray-900 outline-none placeholder-gray-400 resize-none font-medium"/>
+            </div>
+            <div className="text-right text-xs text-gray-400 mt-1">{formData.bio?.length || 0}/100</div>
+         </div>
+      </div>
+
+      {/* Footer */}
+      <div className="fixed bottom-0 w-full max-w-md bg-white border-t border-gray-100 p-4 z-50">
+         <button onClick={handleSave} disabled={saving} className="w-full bg-[#990033] text-white font-bold py-3.5 rounded-xl shadow-lg active:scale-[0.98] transition-transform flex justify-center items-center gap-2">
+            {saving ? <Loader2 className="animate-spin" size={20} /> : "Save Changes"}
+         </button>
+         
+         <button onClick={() => router.push('/dashboard/student/profile/experience')} className="w-full mt-4 flex items-center justify-center gap-2 text-[#990033] font-bold text-sm hover:underline">
+            Next: Add Experience & Interests <ArrowRight size={16} />
+         </button>
       </div>
     </div>
   );

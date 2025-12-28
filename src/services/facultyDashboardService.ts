@@ -6,8 +6,7 @@ import api from "./api";
 export interface ProjectStats {
   active_projects: number;
   total_applicants: number;
-  interviews_set: number;
-  total_shortlisted: number; // <--- ADD THIS LINE TO FIX THE RED LINE
+  total_shortlisted: number;
 }
 
 export interface FacultyProject {
@@ -22,10 +21,11 @@ export interface FacultyProject {
 export interface Applicant {
   student_id: string;
   name: string;
-  roll_no: string;
   department: string;
+  batch?: string;
   profile_picture?: string;
-  applied_date: string;
+  matched_skills?: string[];
+  match_score?: string;
 }
 
 export interface OpeningData {
@@ -77,16 +77,12 @@ export interface FacultyCollaboration {
 }
 
 export interface FacultyDashboardData {
-  user_info: {
-    name: string;
-    department: string;
-    pic?: string;
-  };
-  recommended_students: RecommendedStudent[];
-  faculty_collaborations: FacultyCollaboration[];
-  active_openings: { id: string; title: string }[]; // <-- Added this
+  user_info: { name: string; department: string; pic?: string };
+  unread_count: number; // <--- ADDED THIS
+  recommended_students: Applicant[];
+  faculty_collaborations: any[];
+  active_openings: any[];
 }
-
 export interface CollabProject {
   faculty_id: string;
   faculty_name: string;
@@ -191,12 +187,11 @@ export const facultyDashboardService = {
     },
 
   // ---- Faculty Dashboard ----
-  getFacultyHome: async (filter?: string): Promise<FacultyDashboardData> => {
-      const url = filter ? `/dashboard/faculty/home?filter=${filter}` : "/dashboard/faculty/home";
-      const { data } = await api.get(url);
-      return data;
-    },
-
+getFacultyHome: async (filter?: string) => {
+    const url = filter ? `/dashboard/faculty/home?filter=${filter}` : '/dashboard/faculty/home';
+    const { data } = await api.get(url);
+    return data;
+  },
   getFacultyMenu: async (): Promise<FacultyMenuData> => {
     const { data } = await api.get("/dashboard/faculty/menu");
     return data;
@@ -246,12 +241,20 @@ getMyProjects: async (): Promise<{ stats: ProjectStats; projects: FacultyProject
     return data;
   },
 
-getProjectApplicants: async (projectId: string): Promise<Applicant[]> => {
-    const { data } = await api.get(`/faculty-projects/my-projects/${projectId}/applicants`);
+getProjectApplicants: async (projectId: string) => {
+    const { data } = await api.get(`/dashboard/faculty/projects/${projectId}/applicants`);
     return data;
   },
-  getProjectShortlisted: async (projectId: string): Promise<Applicant[]> => {
-    const { data } = await api.get(`/faculty-projects/my-projects/${projectId}/shortlisted`);
+getProjectShortlisted: async (projectId: string) => {
+    const { data } = await api.get(`/dashboard/faculty/projects/${projectId}/shortlisted`);
     return data;
   },
+  updateApplicantStatus: async (openingId: string, studentId: string, status: 'Shortlisted' | 'Rejected') => {
+    const { data } = await api.put('/applications/status', {
+        opening_id: openingId,
+        student_id: studentId,
+        status: status
+    });
+    return data;
+  }
 };
