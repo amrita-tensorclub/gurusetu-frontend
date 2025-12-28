@@ -7,7 +7,7 @@ import { authService } from '@/services/authService';
 import toast, { Toaster } from 'react-hot-toast';
 import Link from 'next/link';
 
-// --- HELPER: Manually decode JWT to get user_id ---
+// Helper to decode JWT
 function parseJwt(token: string) {
     try {
         const base64Url = token.split('.')[1];
@@ -34,18 +34,18 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // 1. Login
-      const response = await authService.login(email, password);
-      console.log("Login Full Response:", response);
+      // 1. CLEAR OLD DATA to prevent role mismatch conflicts
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
 
-      // 2. CRITICAL: Extract User ID safely
+      // 2. Login
+      const response = await authService.login(email, password);
+
+      // 3. Extract User ID
       let userId = response.user_id; 
-      
-      // If backend didn't send user_id directly, extract it from the token
       if (!userId && response.access_token) {
           const decoded = parseJwt(response.access_token);
           if (decoded) {
-              // Check common ID fields in JWT
               userId = decoded.user_id || decoded.sub || decoded.id;
           }
       }
@@ -54,7 +54,7 @@ export default function LoginPage() {
           throw new Error("Could not find User ID in login response.");
       }
 
-      // 3. Save to LocalStorage in a CLEAN format
+      // 4. Save to LocalStorage
       const userData = {
           user_id: userId,
           role: role,
@@ -62,11 +62,13 @@ export default function LoginPage() {
       };
       
       localStorage.setItem("user", JSON.stringify(userData));
-      console.log("Saved to LocalStorage:", userData); // Verify this in console
+      
+      // OPTIONAL: Also set standalone token for safety/compatibility
+      localStorage.setItem("token", response.access_token);
 
       toast.success(`Welcome back!`);
       
-      // 4. Redirect
+      // 5. Redirect based on role
       if (role === 'student') {
         router.push('/dashboard/student');
       } else {
