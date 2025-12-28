@@ -4,8 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, ChevronRight, User, Mail, Lock, Building, Hash } from 'lucide-react';
 import Link from 'next/link';
-// RELATIVE IMPORT to avoid path errors
-import { authService } from '../../../services/authService'; 
+import { authService } from '@/services/authService'; 
 import toast, { Toaster } from 'react-hot-toast';
 
 export default function SignupPage() {
@@ -32,31 +31,21 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      // 1. Create the Payload EXACTLY matching your Pydantic Model
       const payload = {
         name: formData.name,
         email: formData.email,
         password: formData.password,
         role: role,
-        // Conditionally send ID based on role
         roll_no: role === 'student' ? formData.id_number : null,
         employee_id: role === 'faculty' ? formData.id_number : null
-        
-        // NOTE: We deliberately DO NOT send 'department' 
-        // because your backend model 'UserRegister' does not accept it.
       };
 
-      console.log("Sending to Backend:", payload); 
-
-      // 2. Send to Backend
       await authService.signup(payload);
-      
       toast.success('Account Created! Redirecting...');
       setTimeout(() => router.push('/login'), 1500);
       
     } catch (err: any) {
       console.error("Signup Error:", err);
-      // Display specific error from backend if available
       const msg = err.response?.data?.detail || 'Signup Failed. Check your inputs.';
       toast.error(typeof msg === 'string' ? msg : JSON.stringify(msg));
     } finally {
@@ -65,21 +54,23 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#1a1a1a] flex items-center justify-center relative overflow-hidden font-sans">
+    // --- MAIN CONTAINER (Full Screen Mobile) ---
+    <div className="min-h-screen bg-white flex flex-col font-sans">
       <Toaster position="top-center" />
       
-      <div className="w-[375px] h-auto min-h-[812px] bg-white rounded-[3rem] overflow-hidden relative shadow-2xl border-8 border-gray-900 pb-8">
-        
-        <div className="bg-white pt-16 pb-6 px-6 text-center space-y-2">
-          <h1 className="text-3xl font-black text-[#8C1515] tracking-tight">Guru Setu</h1>
-          <p className="text-xs font-bold text-[#8C1515] uppercase tracking-widest leading-relaxed">
+        {/* Branding Section */}
+        <div className="bg-white pt-16 pb-4 px-6 text-center space-y-2">
+          <h1 className="text-4xl font-black text-[#8C1515] tracking-tight">Guru Setu</h1>
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest leading-relaxed">
             Connecting Students & Faculty <br/> for Research Excellence
           </p>
         </div>
 
-        <div className="px-8 space-y-6 mt-4">
-          {/* Role Toggle */}
-          <div className="flex bg-[#D4AF37] rounded-full shadow-inner">
+        {/* Form Area */}
+        <div className="px-8 space-y-6 mt-4 pb-12 max-w-md mx-auto w-full">
+          
+          {/* Role Toggle (Styled Gold and Maroon) */}
+          <div className="flex bg-[#D4AF37] p-1 rounded-full shadow-inner">
             <button
               type="button"
               onClick={() => setRole('student')}
@@ -110,7 +101,7 @@ export default function SignupPage() {
                 type="text" 
                 placeholder="Full Name"
                 onChange={handleChange}
-                className="w-full border-2 border-[#8C1515] rounded-xl pl-12 pr-4 py-4 text-sm font-bold text-gray-700 outline-none focus:bg-gray-50 transition-colors"
+                className="w-full border-2 border-[#8C1515] rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-gray-700 outline-none focus:bg-gray-50 transition-colors"
                 required
               />
             </div>
@@ -123,7 +114,7 @@ export default function SignupPage() {
                 type="email" 
                 placeholder="University Email"
                 onChange={handleChange}
-                className="w-full border-2 border-[#8C1515] rounded-xl pl-12 pr-4 py-4 text-sm font-bold text-gray-700 outline-none focus:bg-gray-50 transition-colors"
+                className="w-full border-2 border-[#8C1515] rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-gray-700 outline-none focus:bg-gray-50 transition-colors"
                 required
               />
             </div>
@@ -136,7 +127,7 @@ export default function SignupPage() {
                 type={showPassword ? "text" : "password"} 
                 placeholder="Create Password"
                 onChange={handleChange}
-                className="w-full border-2 border-[#8C1515] rounded-xl pl-12 pr-12 py-4 text-sm font-bold text-gray-700 outline-none focus:bg-gray-50 transition-colors"
+                className="w-full border-2 border-[#8C1515] rounded-2xl pl-12 pr-12 py-4 text-sm font-bold text-gray-700 outline-none focus:bg-gray-50 transition-colors"
                 required
               />
               <button 
@@ -148,13 +139,13 @@ export default function SignupPage() {
               </button>
             </div>
 
-            {/* Department - UI ONLY */}
+            {/* Department */}
             <div className="relative">
               <Building className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8C1515]" size={20} />
               <select 
                 name="department"
                 onChange={handleChange}
-                className="w-full border-2 border-[#8C1515] rounded-xl pl-12 pr-4 py-4 text-sm font-bold text-gray-700 outline-none focus:bg-gray-50 transition-colors appearance-none"
+                className="w-full border-2 border-[#8C1515] rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-gray-700 outline-none focus:bg-gray-50 transition-colors appearance-none bg-white"
                 required
               >
                 <option value="">Select Department</option>
@@ -171,9 +162,9 @@ export default function SignupPage() {
               <input 
                 name="id_number"
                 type="text" 
-                placeholder={role === 'student' ? "Roll Number (e.g. CB.SC...)" : "Employee ID"}
+                placeholder={role === 'student' ? "Roll Number" : "Employee ID"}
                 onChange={handleChange}
-                className="w-full border-2 border-[#8C1515] rounded-xl pl-12 pr-4 py-4 text-sm font-bold text-gray-700 outline-none focus:bg-gray-50 transition-colors"
+                className="w-full border-2 border-[#8C1515] rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-gray-700 outline-none focus:bg-gray-50 transition-colors"
                 required
               />
             </div>
@@ -183,13 +174,13 @@ export default function SignupPage() {
               <button 
                 type="submit"
                 disabled={loading}
-                className="w-full bg-[#8C1515] text-white py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg active:scale-95 transition-all disabled:opacity-70 flex items-center justify-center gap-2"
+                className="w-full bg-[#8C1515] text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl active:scale-95 transition-all disabled:opacity-70 flex items-center justify-center gap-2"
               >
                 {loading ? 'Creating Account...' : 'Sign Up'}
                 {!loading && (
-                  <div className="w-6 h-6 bg-[#D4AF37] rounded-full border-2 border-white flex items-center justify-center shadow-sm">
-                    <ChevronRight color="white" size={16} strokeWidth={3} />
-                  </div>
+                    <div className="w-6 h-6 bg-[#D4AF37] rounded-full border-2 border-white flex items-center justify-center shadow-sm">
+                        <ChevronRight color="white" size={16} strokeWidth={3} />
+                    </div>
                 )}
               </button>
             </div>
@@ -202,7 +193,6 @@ export default function SignupPage() {
             </Link>
           </div>
         </div>
-      </div>
     </div>
   );
 }

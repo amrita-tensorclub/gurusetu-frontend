@@ -106,11 +106,12 @@ export default function StudentProfilePage() {
   if (loading) return <div className="h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-[#990033]" /></div>;
 
   return (
-    <div className="min-h-screen bg-white font-sans max-w-md mx-auto relative shadow-2xl border-x border-gray-50">
+    // --- CHANGED: Removed max-w-md, shadow, border to make it full screen mobile ---
+    <div className="min-h-screen bg-white font-sans relative">
       <Toaster position="bottom-center" />
 
       {/* Header */}
-      <div className="bg-[#990033] px-5 pt-8 pb-20 relative">
+      <div className="bg-[#990033] px-5 pt-8 pb-20 sticky top-0 z-0">
         <div className="flex justify-between items-center text-white">
           <button onClick={() => router.back()} className="p-1 -ml-2"><ChevronLeft size={28} /></button>
           <h1 className="text-xl font-bold">My Profile</h1>
@@ -140,7 +141,7 @@ export default function StudentProfilePage() {
       </div>
 
       {/* Form Fields */}
-      <div className="px-6 space-y-5 pb-32">
+      <div className="px-6 space-y-5 pb-40">
          
          <div className="group">
             <label className="block text-[#990033] text-xs font-medium mb-1 ml-1 group-focus-within:font-bold">Name</label>
@@ -199,7 +200,8 @@ export default function StudentProfilePage() {
       </div>
 
       {/* Footer */}
-      <div className="fixed bottom-0 w-full max-w-md bg-white border-t border-gray-100 p-4 z-50">
+      {/* --- CHANGED: Removed max-w-md, added w-full to span full screen --- */}
+      <div className="fixed bottom-0 left-0 right-0 w-full bg-white border-t border-gray-100 p-4 z-50">
          <button onClick={handleSave} disabled={saving} className="w-full bg-[#990033] text-white font-bold py-3.5 rounded-xl shadow-lg active:scale-[0.98] transition-transform flex justify-center items-center gap-2">
             {saving ? <Loader2 className="animate-spin" size={20} /> : "Save Changes"}
          </button>

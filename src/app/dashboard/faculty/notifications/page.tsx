@@ -58,14 +58,12 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#e0e0e0] flex items-center justify-center py-8 font-sans">
+    // --- CHANGED: Full Screen Mobile Layout ---
+    <div className="min-h-screen bg-[#F9F9F9] flex flex-col font-sans">
       <Toaster position="top-center" />
 
-      {/* PHONE FRAME */}
-      <div className="w-full max-w-[390px] h-[844px] bg-[#F9F9F9] rounded-[3rem] shadow-2xl border-8 border-gray-900 overflow-hidden relative flex flex-col">
-        
-        {/* --- HEADER --- */}
-        <div className="bg-[#8C1515] text-white p-6 pt-12 pb-6 shadow-md z-10 flex items-center gap-3">
+        {/* --- HEADER (Sticky) --- */}
+        <div className="bg-[#8C1515] text-white p-6 pt-12 pb-6 shadow-md z-10 sticky top-0 flex items-center gap-3">
            <button onClick={() => router.back()}><ChevronLeft size={24} /></button>
            <h1 className="text-xl font-black tracking-tight flex-1">Notifications</h1>
            <Bell size={20} />
@@ -101,7 +99,6 @@ export default function NotificationsPage() {
 
                 <div className="flex-1">
                    <p className="text-sm text-gray-800 font-medium leading-tight mb-1">
-                     {/* Highlight Name if needed, logic handled by CSS usually, keeping simple here */}
                      {notif.message}
                    </p>
                    
@@ -131,9 +128,9 @@ export default function NotificationsPage() {
            ))}
         </div>
 
-        {/* --- PROFILE MODAL OVERLAY --- */}
+        {/* --- PROFILE MODAL OVERLAY (Fixed) --- */}
         {isModalOpen && (
-           <div className="absolute inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center">
+           <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center">
               <div className="bg-white w-full h-[85%] sm:h-[90%] rounded-t-[2rem] sm:rounded-[2rem] overflow-hidden relative animate-in slide-in-from-bottom duration-300 flex flex-col">
                  
                  {/* Header */}
@@ -211,7 +208,6 @@ export default function NotificationsPage() {
            </div>
         )}
 
-      </div>
     </div>
   );
 }

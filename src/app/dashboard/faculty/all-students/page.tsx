@@ -75,14 +75,12 @@ export default function AllStudentsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#e0e0e0] flex items-center justify-center py-8 font-sans">
+    // --- CHANGED: Full Screen Mobile Layout ---
+    <div className="min-h-screen bg-[#F2F2F2] flex flex-col font-sans">
       <Toaster position="top-center" />
 
-      {/* PHONE FRAME */}
-      <div className="w-full max-w-[390px] h-[844px] bg-[#F9F9F9] rounded-[3rem] shadow-2xl border-8 border-gray-900 overflow-hidden relative flex flex-col">
-        
-        {/* --- HEADER --- */}
-        <div className="bg-[#8C1515] text-white p-6 pt-12 pb-6 shadow-md z-10">
+        {/* --- HEADER (Sticky) --- */}
+        <div className="bg-[#8C1515] text-white p-6 pt-12 pb-6 shadow-md z-10 sticky top-0">
            <div className="flex items-center gap-3 mb-4">
               <button onClick={() => router.back()}><ChevronLeft size={24} /></button>
               <h1 className="text-xl font-black tracking-tight">All Students</h1>
@@ -111,7 +109,7 @@ export default function AllStudentsPage() {
         </div>
 
         {/* --- STUDENTS LIST --- */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3 pb-24 scrollbar-hide bg-[#F2F2F2]">
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 pb-24 scrollbar-hide">
            
            {/* Active Filter Indicators */}
            {(selectedDept || selectedBatch) && (
@@ -138,18 +136,18 @@ export default function AllStudentsPage() {
                 {/* Profile Pic */}
                 <div className="w-12 h-12 rounded-full bg-gray-200 overflow-hidden flex-shrink-0 border border-gray-100 group-hover:border-[#8C1515] transition-colors">
                    <img 
-                     src={student.profile_picture || "https://avatar.iran.liara.run/public"} 
-                     className="w-full h-full object-cover" 
+                      src={student.profile_picture || "https://avatar.iran.liara.run/public"} 
+                      className="w-full h-full object-cover" 
                    />
                 </div>
                 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
                    <h3 className="font-black text-sm text-gray-900 truncate group-hover:text-[#8C1515] transition-colors">
-                     {student.name}
+                      {student.name}
                    </h3>
                    <p className="text-[10px] text-gray-500 font-bold mb-1">
-                     {student.department} • {student.batch}
+                      {student.department} • {student.batch}
                    </p>
                    
                    {/* Skills Tags */}
@@ -172,16 +170,16 @@ export default function AllStudentsPage() {
            <div className="h-10"></div>
         </div>
 
-        {/* --- FILTER BOTTOM SHEET --- */}
+        {/* --- FILTER BOTTOM SHEET (Fixed Overlay) --- */}
         {isFilterOpen && (
-           <div className="absolute inset-0 bg-black/60 z-40 flex items-end animate-in fade-in duration-200">
-              <div className="bg-white w-full rounded-t-[2rem] p-6 animate-in slide-in-from-bottom duration-300">
-                 <div className="flex justify-between items-center mb-6">
+           <div className="fixed inset-0 bg-black/60 z-40 flex items-end animate-in fade-in duration-200">
+              <div className="bg-white w-full rounded-t-[2rem] p-6 animate-in slide-in-from-bottom duration-300 max-h-[80vh] overflow-y-auto">
+                 <div className="flex justify-between items-center mb-6 sticky top-0 bg-white pb-2">
                     <h3 className="font-black text-lg text-gray-800">Filter Students</h3>
                     <button onClick={() => setIsFilterOpen(false)} className="bg-gray-100 p-1.5 rounded-full"><X size={18}/></button>
                  </div>
                  
-                 <div className="space-y-6">
+                 <div className="space-y-6 pb-4">
                     {/* Department Filter */}
                     <div>
                        <label className="text-xs font-bold text-gray-400 uppercase mb-2 block">Department</label>
@@ -223,7 +221,7 @@ export default function AllStudentsPage() {
                     </div>
                  </div>
 
-                 <div className="flex gap-3 mt-8">
+                 <div className="flex gap-3 mt-8 sticky bottom-0 bg-white pt-2">
                     <button 
                        onClick={clearFilters}
                        className="flex-1 bg-gray-100 text-gray-600 py-3 rounded-xl font-black text-xs uppercase"
@@ -241,9 +239,9 @@ export default function AllStudentsPage() {
            </div>
         )}
 
-        {/* --- STUDENT PROFILE MODAL (Existing Code) --- */}
+        {/* --- STUDENT PROFILE MODAL (Fixed Overlay) --- */}
         {selectedStudentId && (
-          <div className="absolute inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center animate-in fade-in duration-200">
+          <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center animate-in fade-in duration-200">
              <div className="bg-white w-full h-[85%] sm:h-[90%] rounded-t-[2rem] sm:rounded-[2rem] overflow-hidden relative animate-in slide-in-from-bottom duration-300 flex flex-col shadow-2xl">
                 {/* Modal Header */}
                 <div className="bg-[#8C1515] h-32 relative flex-shrink-0">
@@ -291,7 +289,6 @@ export default function AllStudentsPage() {
           </div>
         )}
 
-      </div>
     </div>
   );
 }

@@ -55,13 +55,12 @@ export default function TrackOpeningsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#e0e0e0] flex items-center justify-center py-8 font-sans">
+    // --- MAIN CONTAINER (Full Screen Mobile) ---
+    <div className="min-h-screen bg-[#F2F2F2] flex flex-col font-sans">
       <Toaster position="top-center" />
 
-      <div className="w-full max-w-[390px] h-[844px] bg-[#F9F9F9] rounded-[3rem] shadow-2xl border-8 border-gray-900 overflow-hidden relative flex flex-col">
-        
-        {/* HEADER */}
-        <div className="bg-[#8C1515] text-white p-6 pt-12 pb-6 shadow-md z-10 flex justify-between items-center">
+        {/* --- HEADER (Sticky) --- */}
+        <div className="bg-[#8C1515] text-white p-6 pt-12 pb-6 shadow-md z-10 sticky top-0 flex justify-between items-center">
            <div className="flex items-center gap-3">
               <button onClick={() => router.back()} className="p-1 hover:bg-white/10 rounded-full transition-colors">
                 <ChevronLeft size={24} />
@@ -73,8 +72,8 @@ export default function TrackOpeningsPage() {
            </button>
         </div>
 
-        {/* CONTENT */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-20 bg-[#F2F2F2]">
+        {/* --- CONTENT SCROLL AREA --- */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
            
            {loading ? (
               <div className="flex flex-col items-center justify-center h-60 text-gray-400 gap-2">
@@ -125,7 +124,6 @@ export default function TrackOpeningsPage() {
            <div className="h-10"></div>
         </div>
 
-      </div>
     </div>
   );
 }

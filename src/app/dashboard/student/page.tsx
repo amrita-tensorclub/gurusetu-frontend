@@ -71,7 +71,7 @@ export default function StudentDashboard() {
   };
 
   if (loading && !data) return (
-    <div className="min-h-screen bg-gray-200 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="flex flex-col items-center gap-3">
         <RefreshCw className="animate-spin text-[#8C1515]" size={30} />
         <p className="text-sm font-bold text-gray-600">Syncing with Guru Setu...</p>
@@ -80,7 +80,7 @@ export default function StudentDashboard() {
   );
 
   if (error) return (
-    <div className="min-h-screen bg-gray-200 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="bg-white p-6 rounded-2xl shadow-xl text-center space-y-3">
         <AlertCircle className="mx-auto text-red-500" size={40} />
         <h3 className="text-lg font-black text-gray-800">Connection Failed</h3>
@@ -90,15 +90,13 @@ export default function StudentDashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-[#e0e0e0] flex items-center justify-center py-8 font-sans">
+    // --- MAIN CONTAINER (Full Screen Mobile) ---
+    <div className="min-h-screen bg-[#F2F2F2] flex flex-col font-sans">
       <Toaster position="top-center" />
       
-      {/* PHONE FRAME */}
-      <div className="w-full max-w-[390px] h-[844px] bg-white rounded-[3rem] shadow-2xl border-8 border-gray-900 overflow-hidden relative flex flex-col">
-        
-        {/* --- SIDE MENU --- */}
-        <div className={`absolute inset-0 z-50 bg-black/50 transition-opacity duration-300 ${isMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} onClick={() => setMenuOpen(false)}>
-           <div className={`absolute top-0 left-0 bottom-0 w-[80%] bg-white shadow-2xl transition-transform duration-300 transform ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`} onClick={(e) => e.stopPropagation()}>
+        {/* --- SIDE MENU DRAWER (Fixed Overlay) --- */}
+        <div className={`fixed inset-0 z-50 bg-black/50 transition-opacity duration-300 ${isMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} onClick={() => setMenuOpen(false)}>
+           <div className={`absolute top-0 left-0 bottom-0 w-[80%] max-w-[300px] bg-white shadow-2xl transition-transform duration-300 transform ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`} onClick={(e) => e.stopPropagation()}>
               <div className="bg-[#8C1515] p-6 pt-12 pb-8 text-center relative">
                  <button onClick={() => setMenuOpen(false)} className="absolute top-4 right-4 text-white/80"><X size={20} /></button>
                  <div className="w-20 h-20 rounded-full bg-white mx-auto mb-3 p-1">
@@ -122,7 +120,7 @@ export default function StudentDashboard() {
         </div>
 
         {/* --- MAIN HEADER --- */}
-        <div className="bg-[#8C1515] text-white pt-12 pb-6 px-6 rounded-b-[2rem] shadow-lg flex-shrink-0 z-10">
+        <div className="bg-[#8C1515] text-white pt-12 pb-6 px-6 rounded-b-[2rem] shadow-lg flex-shrink-0 z-10 sticky top-0">
           <div className="flex justify-between items-start mb-4">
             <button onClick={() => setMenuOpen(true)}><Menu size={24} className="cursor-pointer" /></button>
             
@@ -152,7 +150,6 @@ export default function StudentDashboard() {
           <div className="mt-6 pl-6">
             <h2 className="text-gray-800 font-black text-lg mb-4 tracking-tight">Recommended for You</h2>
             
-            {/* CHECK: Render Empty State if no data */}
             {data?.recommended_openings && data.recommended_openings.length > 0 ? (
                 <div className="flex gap-4 overflow-x-auto pb-8 pr-6 scrollbar-hide">
                 {data.recommended_openings.map((opening) => (
@@ -181,9 +178,8 @@ export default function StudentDashboard() {
           <div className="px-6 mt-2">
             <div className="flex justify-between items-center mb-4">
                <h2 className="text-gray-800 font-black text-lg tracking-tight">All Openings</h2>
-               {/* REFRESH BUTTON */}
                <div className="flex gap-2">
-                   <button onClick={loadData} className="bg-gray-100 p-2 rounded-lg text-gray-500 hover:bg-gray-200 hover:text-[#8C1515] transition-colors" title="Refresh List">
+                   <button onClick={loadData} className="bg-white border border-gray-200 p-2 rounded-lg text-gray-500 hover:bg-gray-50 hover:text-[#8C1515] transition-colors shadow-sm" title="Refresh List">
                        <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
                    </button>
                    <button className="bg-[#D4AF37] p-2 rounded-lg text-white shadow-sm hover:bg-[#b8962e]"><Filter size={14} /></button>
@@ -204,7 +200,6 @@ export default function StudentDashboard() {
                     </div>
                   ))
               ) : (
-                  // EMPTY STATE MESSAGE
                   <div className="bg-white p-10 rounded-3xl border border-gray-100 text-center flex flex-col items-center justify-center">
                       <Folder size={32} className="text-gray-200 mb-2" />
                       <p className="text-gray-400 text-xs font-bold">No active openings found.</p>
@@ -216,10 +211,10 @@ export default function StudentDashboard() {
           <div className="h-10"></div>
         </div>
 
-        {/* --- DETAILS MODAL --- */}
+        {/* --- DETAILS MODAL (Fixed Overlay) --- */}
         {selectedOpening && (
-          <div className="absolute inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-             <div className="bg-white w-full h-[85%] rounded-t-[2.5rem] shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-10 duration-300">
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+             <div className="bg-white w-full h-[85%] sm:h-[90%] sm:max-w-md rounded-t-[2.5rem] sm:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-10 duration-300">
                 
                 {/* Modal Header */}
                 <div className="bg-[#8C1515] p-6 pb-8 relative shrink-0">
@@ -288,7 +283,6 @@ export default function StudentDashboard() {
           </div>
         )}
 
-      </div>
     </div>
   );
 }

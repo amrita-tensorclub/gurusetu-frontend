@@ -8,11 +8,9 @@ export default function StartPage() {
   const router = useRouter();
 
   return (
-    <div className="min-h-screen bg-[#F9F9F9] flex items-center justify-center font-sans">
+    // --- CHANGED: Full Screen Mobile Layout ---
+    <div className="min-h-screen bg-white flex flex-col items-center justify-center font-sans px-8">
       
-      {/* Main Mobile Container */}
-      <div className="w-full max-w-[390px] h-[844px] bg-white shadow-2xl flex flex-col items-center justify-center border-x border-gray-100 relative px-8">
-        
         {/* BRANDING SECTION: Centered Title & Tagline */}
         <div className="text-center mb-20">
           <h1 className="text-5xl font-[900] text-[#8C1515] tracking-tight mb-4">
@@ -24,7 +22,7 @@ export default function StartPage() {
         </div>
 
         {/* BUTTON SECTION */}
-        <div className="w-full space-y-8">
+        <div className="w-full space-y-8 max-w-sm">
           {/* Get Started -> Goes to Sign Up */}
           <button 
             onClick={() => router.push('/signup')}
@@ -50,7 +48,6 @@ export default function StartPage() {
           </div>
         </div>
 
-      </div>
     </div>
   );
 }

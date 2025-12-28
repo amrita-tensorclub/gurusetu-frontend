@@ -1,7 +1,9 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://10.14.135.42:8000',
+  // This will now look for the variable in .env.local
+  // If not found, it defaults to localhost (standard for dev environments)
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
   headers: { 'Content-Type': 'application/json' }
 });
 
@@ -19,7 +21,7 @@ api.interceptors.request.use((config) => {
     if (userStr) {
       try {
         const user = JSON.parse(userStr);
-        token = user.access_token; // <--- Correctly extract it
+        token = user.access_token; 
       } catch (e) {
         console.error("Error parsing user data:", e);
       }
@@ -43,7 +45,7 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       console.log('Session expired or unauthorized');
-      // Optional: Redirect to login if needed
+      // Optional: Redirect to login
       // window.location.href = '/login'; 
     }
     return Promise.reject(error);

@@ -50,14 +50,15 @@ export default function StudentNotificationsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#e0e0e0] flex items-center justify-center py-8 font-sans">
+    // --- CHANGED: Full Screen Mobile Layout ---
+    <div className="min-h-screen bg-[#F9F9F9] font-sans flex flex-col">
       <Toaster position="top-center" />
 
-      <div className="w-full max-w-[390px] h-[844px] bg-[#F9F9F9] rounded-[3rem] shadow-2xl border-8 border-gray-900 overflow-hidden relative flex flex-col">
-        
-        {/* HEADER */}
-        <div className="bg-[#8C1515] text-white p-6 pt-12 pb-6 shadow-md z-10 flex items-center gap-4">
-           <button onClick={() => router.back()} className="p-1"><ChevronLeft size={24} /></button>
+        {/* HEADER (Sticky) */}
+        <div className="bg-[#8C1515] text-white p-6 pt-12 pb-6 shadow-md z-10 flex items-center gap-4 sticky top-0">
+           <button onClick={() => router.back()} className="p-1 hover:bg-white/10 rounded-full transition-colors">
+             <ChevronLeft size={24} />
+           </button>
            <h1 className="text-lg font-black tracking-tight">Notifications</h1>
         </div>
 
@@ -102,7 +103,6 @@ export default function StudentNotificationsPage() {
            )}
         </div>
 
-      </div>
     </div>
   );
 }

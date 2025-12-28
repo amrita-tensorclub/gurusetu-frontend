@@ -73,7 +73,7 @@ export default function ResearchExperiencePage() {
         type: w.type || "Publication",
         year: w.year,
         outcome: w.outcome || "",
-        collaborators: w.collaborators || "" // Ensure this is mapped
+        collaborators: w.collaborators || ""
       }));
       setPreviousWork(mappedWork);
     } catch (error) {
@@ -92,7 +92,6 @@ export default function ResearchExperiencePage() {
 
     try {
       setLoading(true);
-      // Only saving Domains and Work here. Openings are saved immediately.
       const payload: any = {
         domain_interests: domains,
         previous_work: previousWork,
@@ -106,7 +105,6 @@ export default function ResearchExperiencePage() {
     }
   };
 
-  // --- HANDLERS ---
   const addDomain = () => {
     if (newDomain && !domains.includes(newDomain)) {
       setDomains([...domains, newDomain]);
@@ -122,7 +120,6 @@ export default function ResearchExperiencePage() {
     }
   };
 
-  // --- FIXED: SAVE OPENING NOW CALLS API ---
   const saveOpening = async () => {
     if (!newOpening.title || !newOpening.description) {
       toast.error("Title and Description required");
@@ -131,7 +128,6 @@ export default function ResearchExperiencePage() {
     
     try {
         setLoading(true);
-        // Construct the payload for the API
         const openingPayload = {
             title: newOpening.title,
             description: newOpening.description,
@@ -142,10 +138,7 @@ export default function ResearchExperiencePage() {
             deadline: newOpening.deadline
         };
 
-        // Actual API Call
         await facultyDashboardService.postOpening(openingPayload);
-        
-        // Refresh data to get the new ID from server
         await loadProfile(userId);
         
         setIsPostingOpening(false);
@@ -170,20 +163,20 @@ export default function ResearchExperiencePage() {
   };
 
   const handleDeleteOpening = async (id: string) => {
-      // For now, we just hide it from UI. Ideally, add a DELETE endpoint.
       if(confirm("Remove this opening?")) {
           setOpenings(openings.filter(o => o.id !== id));
-          toast.success("Opening removed (Save to persist if not using API)");
+          toast.success("Opening removed");
       }
   };
 
   if (loading) return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin text-[#8C1515]" /></div>;
 
   return (
-    <div className="max-w-md mx-auto bg-white min-h-screen pb-32 font-sans relative shadow-2xl">
+    // --- CHANGED: Full Screen Mobile Layout ---
+    <div className="min-h-screen bg-white font-sans relative pb-40">
       <Toaster position="bottom-center" />
       
-      {/* Header */}
+      {/* Header (Sticky) */}
       <div className="bg-[#8C1515] text-white p-5 flex items-center justify-between sticky top-0 z-20 shadow-md">
         <div className="flex items-center gap-4" onClick={() => router.back()}>
           <ChevronRight className="rotate-180 cursor-pointer" />
@@ -280,7 +273,7 @@ export default function ResearchExperiencePage() {
                 <div className="flex gap-2">
                   <input 
                     className="flex-1 bg-gray-50 rounded-lg px-3 py-2 text-xs font-bold outline-none"
-                    placeholder="Add Skill (e.g. Python)"
+                    placeholder="Add Skill"
                     value={newSkill}
                     onChange={(e) => setNewSkill(e.target.value)}
                   />
@@ -330,21 +323,21 @@ export default function ResearchExperiencePage() {
                   <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
                      <div className="flex gap-2">
                         <input 
-                           className="w-16 bg-white border border-gray-200 rounded px-2 py-1 text-xs font-bold text-center"
-                           placeholder="Year"
-                           value={newWork.year}
-                           onChange={(e) => setNewWork({...newWork, year: e.target.value})}
+                            className="w-16 bg-white border border-gray-200 rounded px-2 py-1 text-xs font-bold text-center"
+                            placeholder="Year"
+                            value={newWork.year}
+                            onChange={(e) => setNewWork({...newWork, year: e.target.value})}
                         />
                         <input 
-                           className="flex-1 bg-white border border-gray-200 rounded px-2 py-1 text-xs font-bold"
-                           placeholder="Title of Paper/Project"
-                           value={newWork.title}
-                           onChange={(e) => setNewWork({...newWork, title: e.target.value})}
+                            className="flex-1 bg-white border border-gray-200 rounded px-2 py-1 text-xs font-bold"
+                            placeholder="Title"
+                            value={newWork.title}
+                            onChange={(e) => setNewWork({...newWork, title: e.target.value})}
                         />
                      </div>
                      <textarea 
                         className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs font-medium outline-none focus:border-[#8C1515] resize-none h-16"
-                        placeholder="Brief description or outcome of the work..."
+                        placeholder="Outcome..."
                         value={newWork.outcome}
                         onChange={(e) => setNewWork({...newWork, outcome: e.target.value})}
                      />
@@ -359,10 +352,10 @@ export default function ResearchExperiencePage() {
                             <option>Patent</option>
                          </select>
                          <input 
-                           className="flex-1 bg-white border border-gray-200 rounded px-2 py-1 text-[10px]"
-                           placeholder="Collaborators (comma user names)"
-                           value={newWork.collaborators}
-                           onChange={(e) => setNewWork({...newWork, collaborators: e.target.value})}
+                            className="flex-1 bg-white border border-gray-200 rounded px-2 py-1 text-[10px]"
+                            placeholder="Collaborators"
+                            value={newWork.collaborators}
+                            onChange={(e) => setNewWork({...newWork, collaborators: e.target.value})}
                         />
                      </div>
                      <div className="flex justify-end gap-2 pt-1">
@@ -384,10 +377,11 @@ export default function ResearchExperiencePage() {
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 mx-auto w-full max-w-md bg-white border-t border-gray-200 p-4 pb-6 z-30 flex justify-center shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
+      {/* Footer Button (Fixed Full Width) */}
+      <div className="fixed bottom-0 left-0 right-0 w-full bg-white border-t border-gray-200 p-4 pb-6 z-30 flex justify-center shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
          <button 
             onClick={handleSaveAll}
-            className="w-full max-w-sm bg-[#8C1515] text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-3">
+            className="w-full bg-[#8C1515] text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-3">
             <Save size={20} /> Save Changes
          </button>
       </div>
