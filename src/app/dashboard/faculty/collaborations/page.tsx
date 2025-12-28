@@ -59,21 +59,19 @@ export default function CollaborationHub() {
   };
 
   return (
-    <div className="min-h-screen bg-[#e0e0e0] flex items-center justify-center py-8 font-sans">
+    // --- CHANGED: Full Screen Mobile Layout ---
+    <div className="min-h-screen bg-[#F2F2F2] flex flex-col font-sans">
       <Toaster position="top-center" />
 
-      {/* PHONE FRAME */}
-      <div className="w-full max-w-[390px] h-[844px] bg-[#F9F9F9] rounded-[3rem] shadow-2xl border-8 border-gray-900 overflow-hidden relative flex flex-col">
-        
-        {/* --- HEADER --- */}
-        <div className="bg-[#8C1515] text-white p-6 pt-12 pb-6 shadow-md z-10">
+        {/* --- HEADER (Sticky) --- */}
+        <div className="bg-[#8C1515] text-white p-6 pt-12 pb-6 shadow-md z-10 sticky top-0">
            <div className="flex items-center gap-3 mb-4">
               <button onClick={() => router.back()}><ChevronLeft size={24} /></button>
               <h1 className="text-xl font-black tracking-tight flex-1 text-center mr-6">Collaboration Hub</h1>
               <button><Filter size={24} onClick={() => setIsFilterOpen(true)} /></button>
            </div>
 
-           {/* Search Bar (Updated: Removed Filter Button) */}
+           {/* Search Bar */}
            <div className="flex gap-2">
               <div className="flex-1 bg-white rounded-xl flex items-center px-3 py-2.5 shadow-inner">
                  <Search size={16} className="text-gray-400 mr-2" />
@@ -88,7 +86,7 @@ export default function CollaborationHub() {
         </div>
 
         {/* --- CONTENT LIST --- */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-24 scrollbar-hide bg-[#F2F2F2]">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-24 scrollbar-hide">
            
            <div className="flex justify-center py-2 text-[#8C1515]">
               <div className="bg-white p-2 rounded-full shadow-md cursor-pointer hover:rotate-180 transition-transform" onClick={loadProjects}>
@@ -152,9 +150,9 @@ export default function CollaborationHub() {
            <div className="h-10"></div>
         </div>
 
-        {/* --- FILTER BOTTOM SHEET --- */}
+        {/* --- FILTER BOTTOM SHEET (Fixed Overlay) --- */}
         {isFilterOpen && (
-           <div className="absolute inset-0 bg-black/60 z-40 flex items-end">
+           <div className="fixed inset-0 bg-black/60 z-40 flex items-end">
               <div className="bg-white w-full rounded-t-[2rem] p-6 animate-in slide-in-from-bottom duration-300">
                  <div className="flex justify-between items-center mb-6">
                     <h3 className="font-black text-lg text-gray-800">Filter Hub</h3>
@@ -182,111 +180,108 @@ export default function CollaborationHub() {
            </div>
         )}
 
-        {/* --- FACULTY PROFILE POPUP --- */}
+        {/* --- FACULTY PROFILE POPUP (Fixed Overlay) --- */}
         {selectedFacultyId && (
-          <div className="absolute inset-0 bg-white z-50 overflow-y-auto animate-in slide-in-from-right duration-300">
+          <div className="fixed inset-0 bg-white z-50 overflow-y-auto animate-in slide-in-from-right duration-300">
               
-             {/* Modal Header */}
-             <div className="relative h-40 bg-[#F9F9F9] flex justify-center items-end pb-0 border-b border-gray-100">
-                <button 
-                  onClick={() => setSelectedFacultyId(null)} 
-                  className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-sm text-gray-500 hover:bg-gray-100"
-                >
-                   <X size={20} />
-                </button>
-                <div className="absolute -bottom-10 border-4 border-white rounded-full overflow-hidden shadow-lg w-24 h-24 bg-gray-200">
-                   <img 
-                      src={profileData?.info.profile_picture || "https://avatar.iran.liara.run/public/boy"} 
-                      className="w-full h-full object-cover" 
-                   />
-                </div>
-             </div>
+              {/* Modal Header */}
+              <div className="relative h-40 bg-[#F9F9F9] flex justify-center items-end pb-0 border-b border-gray-100">
+                 <button 
+                   onClick={() => setSelectedFacultyId(null)} 
+                   className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-sm text-gray-500 hover:bg-gray-100"
+                 >
+                    <X size={20} />
+                 </button>
+                 <div className="absolute -bottom-10 border-4 border-white rounded-full overflow-hidden shadow-lg w-24 h-24 bg-gray-200">
+                    <img 
+                       src={profileData?.info.profile_picture || "https://avatar.iran.liara.run/public/boy"} 
+                       className="w-full h-full object-cover" 
+                    />
+                 </div>
+              </div>
 
-             {/* Profile Content */}
-             {profileData ? (
-                <div className="px-6 pt-12 pb-10 text-center">
-                   
-                   <h2 className="text-xl font-black text-gray-900 leading-tight">{profileData.info.name}</h2>
-                   <p className="text-xs font-bold text-[#8C1515] mt-1">{profileData.info.designation}</p>
-                   <p className="text-[10px] text-gray-400 font-bold">{profileData.info.department}</p>
-                   
-                   {/* FIX: Combine UG, PG, PhD into one list for display */}
-                   <div className="flex justify-center flex-wrap gap-2 mt-3 mb-5">
-                      {[
-                        ...(profileData.info.phd_details || []),
-                        ...(profileData.info.pg_details || []),
-                        ...(profileData.info.ug_details || [])
-                      ].map((q, i) => (
-                         <span key={i} className="bg-gray-100 text-gray-600 px-2 py-1 rounded-md text-[9px] font-bold">
-                            {q}
-                         </span>
-                      ))}
-                   </div>
+              {/* Profile Content */}
+              {profileData ? (
+                 <div className="px-6 pt-12 pb-10 text-center">
+                    
+                    <h2 className="text-xl font-black text-gray-900 leading-tight">{profileData.info.name}</h2>
+                    <p className="text-xs font-bold text-[#8C1515] mt-1">{profileData.info.designation}</p>
+                    <p className="text-[10px] text-gray-400 font-bold">{profileData.info.department}</p>
+                    
+                    <div className="flex justify-center flex-wrap gap-2 mt-3 mb-5">
+                       {[
+                         ...(profileData.info.phd_details || []),
+                         ...(profileData.info.pg_details || []),
+                         ...(profileData.info.ug_details || [])
+                       ].map((q, i) => (
+                          <span key={i} className="bg-gray-100 text-gray-600 px-2 py-1 rounded-md text-[9px] font-bold">
+                             {q}
+                          </span>
+                       ))}
+                    </div>
 
-                   <div className="space-y-2 mb-6">
-                      <div className="border border-red-100 bg-red-50/50 rounded-xl p-3 flex items-center gap-3">
-                         <Mail size={16} className="text-[#8C1515]" />
-                         <span className="text-xs font-bold text-[#8C1515]">{profileData.info.email}</span>
-                      </div>
-                      <div className="border border-gray-100 bg-gray-50 rounded-xl p-3 flex items-center gap-3">
-                         <MapPin size={16} className="text-gray-500" />
-                         <div className="text-left">
-                            <p className="text-[9px] font-bold text-gray-400 uppercase">Cabin Location</p>
-                            {/* FIX: Construct location from specific fields */}
-                            <p className="text-xs font-bold text-gray-700">
+                    <div className="space-y-2 mb-6">
+                       <div className="border border-red-100 bg-red-50/50 rounded-xl p-3 flex items-center gap-3">
+                          <Mail size={16} className="text-[#8C1515]" />
+                          <span className="text-xs font-bold text-[#8C1515]">{profileData.info.email}</span>
+                       </div>
+                       <div className="border border-gray-100 bg-gray-50 rounded-xl p-3 flex items-center gap-3">
+                          <MapPin size={16} className="text-gray-500" />
+                          <div className="text-left">
+                             <p className="text-[9px] font-bold text-gray-400 uppercase">Cabin Location</p>
+                             <p className="text-xs font-bold text-gray-700">
                                {profileData.info.cabin_block ? 
                                   `${profileData.info.cabin_block}, Floor ${profileData.info.cabin_floor}, ${profileData.info.cabin_number}` 
                                   : "Location not updated"}
-                            </p>
-                         </div>
-                      </div>
-                   </div>
+                             </p>
+                          </div>
+                       </div>
+                    </div>
 
-                   <div className="text-left mb-6">
-                      <h3 className="text-[#8C1515] font-black text-xs uppercase tracking-widest mb-3">Research Interests</h3>
-                      <div className="flex flex-wrap gap-2">
-                         {profileData.info.interests?.map(int => (
-                            <span key={int} className="border border-[#8C1515] text-[#8C1515] px-3 py-1.5 rounded-full text-[10px] font-bold">
-                               {int}
-                            </span>
-                         ))}
-                      </div>
-                   </div>
+                    <div className="text-left mb-6">
+                       <h3 className="text-[#8C1515] font-black text-xs uppercase tracking-widest mb-3">Research Interests</h3>
+                       <div className="flex flex-wrap gap-2">
+                          {profileData.info.interests?.map(int => (
+                             <span key={int} className="border border-[#8C1515] text-[#8C1515] px-3 py-1.5 rounded-full text-[10px] font-bold">
+                                {int}
+                             </span>
+                          ))}
+                       </div>
+                    </div>
 
-                   <div className="text-left mb-6">
-                      <h3 className="text-[#8C1515] font-black text-xs uppercase tracking-widest mb-3">Current Openings</h3>
-                      <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                         {profileData.openings?.length === 0 && <p className="text-xs text-gray-400">No current openings.</p>}
-                         {profileData.openings?.map(op => (
-                            <div key={op.id} className="min-w-[200px] bg-white border border-gray-200 p-4 rounded-xl shadow-sm">
-                               <p className="text-[9px] font-bold text-gray-400 uppercase mb-1">{op.type}</p>
-                               <h4 className="font-bold text-sm text-gray-800 leading-tight mb-2">{op.title}</h4>
-                               <button className="text-[#8C1515] text-[10px] font-black underline">View Details</button>
-                            </div>
-                         ))}
-                      </div>
-                   </div>
-                   
-                   <div className="flex gap-3 mt-8">
-                      <button className="flex-1 bg-[#8C1515] text-white py-3 rounded-xl font-black text-xs shadow-lg active:scale-95 transition-transform">
-                         Navigate to Cabin
-                      </button>
-                      <button className="flex-1 border-2 border-[#8C1515] text-[#8C1515] py-3 rounded-xl font-black text-xs active:scale-95 transition-transform">
-                         Request Meeting
-                      </button>
-                   </div>
-                   
-                   <div className="h-10"></div>
-                </div>
-             ) : (
-                <div className="flex justify-center items-center h-40">
-                   <p className="text-xs font-bold text-gray-400 animate-pulse">Loading Profile...</p>
-                </div>
-             )}
+                    <div className="text-left mb-6">
+                       <h3 className="text-[#8C1515] font-black text-xs uppercase tracking-widest mb-3">Current Openings</h3>
+                       <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                          {profileData.openings?.length === 0 && <p className="text-xs text-gray-400">No current openings.</p>}
+                          {profileData.openings?.map(op => (
+                             <div key={op.id} className="min-w-[200px] bg-white border border-gray-200 p-4 rounded-xl shadow-sm">
+                                <p className="text-[9px] font-bold text-gray-400 uppercase mb-1">{op.type}</p>
+                                <h4 className="font-bold text-sm text-gray-800 leading-tight mb-2">{op.title}</h4>
+                                <button className="text-[#8C1515] text-[10px] font-black underline">View Details</button>
+                             </div>
+                          ))}
+                       </div>
+                    </div>
+                    
+                    <div className="flex gap-3 mt-8">
+                       <button className="flex-1 bg-[#8C1515] text-white py-3 rounded-xl font-black text-xs shadow-lg active:scale-95 transition-transform">
+                          Navigate to Cabin
+                       </button>
+                       <button className="flex-1 border-2 border-[#8C1515] text-[#8C1515] py-3 rounded-xl font-black text-xs active:scale-95 transition-transform">
+                          Request Meeting
+                       </button>
+                    </div>
+                    
+                    <div className="h-10"></div>
+                 </div>
+              ) : (
+                 <div className="flex justify-center items-center h-40">
+                    <p className="text-xs font-bold text-gray-400 animate-pulse">Loading Profile...</p>
+                 </div>
+              )}
           </div>
         )}
 
-      </div>
     </div>
   );
 }

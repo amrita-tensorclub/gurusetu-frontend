@@ -66,30 +66,20 @@ export default function MyProjectsPage() {
     }
   };
 
-  // --- HANDLE STATUS CHANGE (Reject / Shortlist) ---
   const handleStatusAction = async (e: React.MouseEvent, studentId: string, status: 'Shortlisted' | 'Rejected') => {
-    e.stopPropagation(); // Prevents clicking the row from opening the profile
-    
+    e.stopPropagation(); 
     if (!selectedProject) return;
 
     try {
-      // 1. Call Backend
       await facultyDashboardService.updateApplicantStatus(selectedProject.id, studentId, status);
-      
-      // 2. Show Success Message
       toast.success(status === 'Shortlisted' ? "Student Shortlisted" : "Student Rejected");
-      
-      // 3. UI UPDATE: Remove the student from the list IMMEDIATELY
       setStudentList((prevList) => prevList.filter((s) => s.student_id !== studentId));
-      
-      // 4. Refresh background stats (optional, keeps numbers sync)
       loadProjects(); 
     } catch (err) {
       toast.error("Action failed");
     }
   };
 
-  // --- FETCH & OPEN PROFILE MODAL ---
   const handleViewProfile = async (studentId: string) => {
     setViewProfileId(studentId);
     setLoadingProfile(true);
@@ -108,43 +98,42 @@ export default function MyProjectsPage() {
 
   const handleDelete = async (id: string) => {
     if(confirm("Delete this opening?")) {
-        // Add delete logic here if needed
         toast.success("Opening removed");
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#e0e0e0] flex items-center justify-center py-8 font-sans">
+    // --- MAIN CONTAINER (Full Screen Mobile) ---
+    <div className="min-h-screen bg-[#F2F2F2] flex flex-col font-sans">
       <Toaster position="top-center" />
 
-      <div className="w-full max-w-[390px] h-[844px] bg-[#F9F9F9] rounded-[3rem] shadow-2xl border-8 border-gray-900 overflow-hidden relative flex flex-col">
-        
-        {/* HEADER */}
-        <div className="bg-[#8C1515] text-white p-6 pt-12 pb-6 shadow-md z-10 flex justify-between items-center">
+        {/* HEADER (Sticky) */}
+        <div className="bg-[#8C1515] text-white p-6 pt-12 pb-6 shadow-md z-10 sticky top-0 flex justify-between items-center">
            <div className="flex items-center gap-3">
-              <button onClick={() => router.back()}><ChevronLeft size={24} /></button>
+              <button onClick={() => router.back()} className="p-1 hover:bg-white/10 rounded-full transition-colors">
+                <ChevronLeft size={24} />
+              </button>
               <h1 className="text-lg font-black tracking-tight">My Openings</h1>
            </div>
-           <div className="w-6"></div>
         </div>
 
-        {/* CONTENT */}
-        <div className="flex-1 overflow-y-auto pb-24 scrollbar-hide bg-[#F2F2F2]">
+        {/* CONTENT SCROLL AREA */}
+        <div className="flex-1 overflow-y-auto pb-24 scrollbar-hide">
            
            {/* STATS */}
            <div className="flex gap-3 overflow-x-auto px-4 py-6 scrollbar-hide">
               <div className="min-w-[130px] bg-white p-4 rounded-2xl shadow-sm border-l-4 border-[#8C1515]">
-                 <p className="text-[10px] font-bold text-gray-400 uppercase">Active</p>
+                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Active</p>
                  <p className="text-3xl font-black text-[#8C1515] mt-1">{stats.active_projects}</p>
                  <p className="text-[9px] text-gray-400 font-bold mt-1">Projects Live</p>
               </div>
               <div className="min-w-[130px] bg-white p-4 rounded-2xl shadow-sm border-l-4 border-[#D4AF37]">
-                 <p className="text-[10px] font-bold text-gray-400 uppercase">Applicants</p>
+                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Applicants</p>
                  <p className="text-3xl font-black text-[#D4AF37] mt-1">{stats.total_applicants}</p>
                  <p className="text-[9px] text-gray-400 font-bold mt-1">Total Interested</p>
               </div>
               <div className="min-w-[130px] bg-white p-4 rounded-2xl shadow-sm border-l-4 border-green-600">
-                 <p className="text-[10px] font-bold text-gray-400 uppercase">Shortlisted</p>
+                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Shortlisted</p>
                  <p className="text-3xl font-black text-green-600 mt-1">{stats.total_shortlisted}</p>
                  <p className="text-[9px] text-gray-400 font-bold mt-1">Candidates</p>
               </div>
@@ -177,12 +166,12 @@ export default function MyProjectsPage() {
                 </div>
               ))}
            </div>
-           <div className="h-20"></div>
+           <div className="h-10"></div>
         </div>
 
-        {/* --- 1. APPLICANTS LIST MODAL --- */}
+        {/* --- APPLICANTS LIST MODAL (Fixed Overlay) --- */}
         {selectedProject && !viewProfileId && (
-          <div className="absolute inset-0 bg-black/60 z-40 flex items-end animate-in fade-in duration-200">
+          <div className="fixed inset-0 bg-black/60 z-40 flex items-end animate-in fade-in duration-200">
             <div className="bg-white w-full h-[85%] rounded-t-[2.5rem] p-6 flex flex-col animate-in slide-in-from-bottom duration-300 shadow-2xl">
               
               <div className="flex justify-between items-start mb-4">
@@ -211,7 +200,6 @@ export default function MyProjectsPage() {
                             onClick={() => handleViewProfile(student.student_id)}
                             className="bg-white border border-gray-100 p-4 rounded-2xl shadow-sm flex flex-col gap-3 cursor-pointer active:scale-[0.99] transition-transform hover:border-[#8C1515]"
                           >
-                             {/* Student Header */}
                              <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
                                    <img src={student.profile_picture || "https://avatar.iran.liara.run/public"} className="w-full h-full object-cover" />
@@ -222,18 +210,17 @@ export default function MyProjectsPage() {
                                 </div>
                              </div>
 
-                             {/* ACTION BUTTONS (Shortlist / Reject) */}
                              {viewMode === 'applicants' ? (
                                <div className="flex gap-2 pt-1 border-t border-gray-50 mt-1">
                                   <button 
                                     onClick={(e) => handleStatusAction(e, student.student_id, 'Rejected')}
-                                    className="flex-1 bg-white border border-red-200 text-red-500 py-2.5 rounded-xl text-[10px] font-black uppercase hover:bg-red-50 transition-colors shadow-sm"
+                                    className="flex-1 bg-white border border-red-200 text-red-500 py-2.5 rounded-xl text-[10px] font-black uppercase shadow-sm"
                                   >
                                     Reject
                                   </button>
                                   <button 
                                     onClick={(e) => handleStatusAction(e, student.student_id, 'Shortlisted')}
-                                    className="flex-1 bg-[#8C1515] text-white py-2.5 rounded-xl text-[10px] font-black uppercase shadow-md hover:bg-[#7a1212] transition-colors"
+                                    className="flex-1 bg-[#8C1515] text-white py-2.5 rounded-xl text-[10px] font-black uppercase shadow-md"
                                   >
                                     Shortlist
                                   </button>
@@ -252,34 +239,29 @@ export default function MyProjectsPage() {
           </div>
         )}
 
-        {/* --- 2. FULL PROFILE DETAILS MODAL --- */}
+        {/* --- STUDENT PROFILE DETAILS MODAL (Fixed Overlay) --- */}
         {viewProfileId && (
-            <div className="absolute inset-0 bg-black/60 z-50 flex items-end animate-in fade-in duration-200">
+            <div className="fixed inset-0 bg-black/60 z-50 flex items-end animate-in fade-in duration-200">
                <div className="bg-white w-full h-[90%] rounded-t-[2.5rem] overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-300 shadow-2xl relative">
                   
-                  {/* Modal Header */}
                   <div className="bg-[#8C1515] p-6 pb-12 relative shrink-0">
                      <button onClick={() => setViewProfileId(null)} className="absolute top-5 right-5 bg-white/20 p-2 rounded-full text-white hover:bg-white/30 transition-colors"><X size={18} /></button>
                      <p className="text-[#D4AF37] font-black text-[10px] uppercase tracking-widest mb-1">Applicant Profile</p>
                   </div>
 
-                  {/* Profile Content */}
-                  <div className="flex-1 overflow-y-auto bg-gray-50 -mt-6 rounded-t-[2rem] px-6 pt-0 pb-10">
+                  <div className="flex-1 overflow-y-auto bg-gray-50 -mt-6 rounded-t-[2rem] px-6 pb-10">
                      {loadingProfile || !profileData ? (
                         <div className="flex justify-center mt-20"><RefreshCw className="animate-spin text-[#8C1515]" /></div>
                      ) : (
                         <div className="space-y-6 mt-0">
-                           
-                           {/* Avatar & Basic Info */}
                            <div className="text-center -mt-10 mb-2">
                               <div className="w-24 h-24 rounded-full border-4 border-white bg-gray-200 shadow-md mx-auto overflow-hidden">
-                                 <img src={profileData.info.profile_picture || "https://avatar.iran.liara.run/public"} className="w-full h-full object-cover"/>
+                                  <img src={profileData.info.profile_picture || "https://avatar.iran.liara.run/public"} className="w-full h-full object-cover"/>
                               </div>
                               <h2 className="text-xl font-black text-gray-900 mt-3">{profileData.info.name}</h2>
                               <p className="text-xs font-bold text-gray-500">{profileData.info.roll_no}</p>
                            </div>
 
-                           {/* Contact & Dept */}
                            <div className="bg-white p-4 rounded-2xl shadow-sm space-y-3">
                                <div className="flex items-center gap-3">
                                    <div className="bg-red-50 p-2 rounded-full text-[#8C1515]"><GraduationCap size={16}/></div>
@@ -295,30 +277,27 @@ export default function MyProjectsPage() {
                                </div>
                            </div>
 
-                           {/* Skills */}
                            <div>
                               <h3 className="text-xs font-black uppercase text-gray-400 mb-2 tracking-wider">Skills</h3>
                               <div className="flex flex-wrap gap-2">
-                                 {profileData.info.skills.length > 0 ? profileData.info.skills.map((s: string) => (
+                                  {profileData.info.skills.length > 0 ? profileData.info.skills.map((s: string) => (
                                     <span key={s} className="bg-white border border-gray-200 text-gray-600 px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-sm">{s}</span>
-                                 )) : <span className="text-xs text-gray-400 italic">No skills listed</span>}
+                                  )) : <span className="text-xs text-gray-400 italic">No skills listed</span>}
                               </div>
                            </div>
 
-                           {/* Projects */}
                            <div>
                               <h3 className="text-xs font-black uppercase text-gray-400 mb-2 tracking-wider">Experience & Projects</h3>
                               <div className="space-y-3">
-                                 {profileData.projects.length > 0 ? profileData.projects.map((p: any, idx: number) => (
+                                  {profileData.projects.length > 0 ? profileData.projects.map((p: any, idx: number) => (
                                     <div key={idx} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                                       <h4 className="font-bold text-sm text-[#8C1515]">{p.title}</h4>
-                                       <p className="text-[10px] font-bold text-gray-400 mt-0.5 mb-2">{p.duration}</p>
-                                       <p className="text-xs text-gray-600 leading-relaxed">{p.description}</p>
+                                        <h4 className="font-bold text-sm text-[#8C1515]">{p.title}</h4>
+                                        <p className="text-[10px] font-bold text-gray-400 mt-0.5 mb-2">{p.duration}</p>
+                                        <p className="text-xs text-gray-600 leading-relaxed">{p.description}</p>
                                     </div>
-                                 )) : <div className="bg-white p-6 rounded-xl text-center text-gray-400 text-xs italic">No projects added yet.</div>}
+                                  )) : <div className="bg-white p-6 rounded-xl text-center text-gray-400 text-xs italic">No projects added yet.</div>}
                               </div>
                            </div>
-
                         </div>
                      )}
                   </div>
@@ -326,7 +305,6 @@ export default function MyProjectsPage() {
             </div>
         )}
 
-      </div>
     </div>
   );
 }

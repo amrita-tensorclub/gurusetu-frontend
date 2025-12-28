@@ -181,7 +181,8 @@ export default function FacultyProfilePage() {
   if (loading) return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin text-[#8C1515]" /></div>;
 
   return (
-    <div className="max-w-md mx-auto bg-white min-h-screen pb-32 font-sans relative shadow-2xl">
+    // --- CHANGED: Full Screen Mobile Layout ---
+    <div className="min-h-screen bg-white font-sans relative pb-40">
       <Toaster position="bottom-center" />
       
       {/* Header */}
@@ -419,7 +420,8 @@ export default function FacultyProfilePage() {
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 mx-auto w-full max-w-md bg-white border-t border-gray-200 p-4 pb-6 z-30 flex flex-col items-center gap-3 shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
+      {/* Footer (Fixed Full Width) */}
+      <div className="fixed bottom-0 left-0 right-0 w-full bg-white border-t border-gray-200 p-4 pb-6 z-30 flex flex-col items-center gap-3 shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
          <button 
             onClick={handleSave}
             className="w-full max-w-sm bg-[#8C1515] text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-3">

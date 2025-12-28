@@ -101,7 +101,8 @@ export default function StudentExperiencePage() {
   if(loading) return <div className="min-h-screen flex items-center justify-center font-bold text-gray-400">Loading...</div>;
 
   return (
-    <div className="max-w-md mx-auto bg-white min-h-screen pb-32 font-sans shadow-sm border-x border-gray-100 relative">
+    // --- CHANGED: Full Screen Mobile Layout ---
+    <div className="min-h-screen bg-white font-sans flex flex-col relative pb-32">
       <Toaster position="top-center" />
       
       {/* Header */}
@@ -110,7 +111,7 @@ export default function StudentExperiencePage() {
         <h1 className="text-lg font-bold tracking-tight">Experience & Publications</h1>
       </div>
 
-      <div className="p-6 space-y-8">
+      <div className="p-6 space-y-8 flex-1">
         
         {/* Interests */}
         <div className="space-y-4">
@@ -192,7 +193,8 @@ export default function StudentExperiencePage() {
 
       </div>
 
-      <div className="fixed bottom-0 w-full max-w-md bg-white border-t border-gray-100 p-6 z-30">
+      {/* --- FIXED FOOTER BUTTON --- */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-6 z-30">
          <button 
             type="button" 
             onClick={handleSave} 

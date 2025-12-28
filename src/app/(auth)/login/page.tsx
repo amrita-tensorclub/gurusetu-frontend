@@ -34,14 +34,11 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // 1. CLEAR OLD DATA to prevent role mismatch conflicts
       localStorage.removeItem('user');
       localStorage.removeItem('token');
 
-      // 2. Login
       const response = await authService.login(email, password);
 
-      // 3. Extract User ID
       let userId = response.user_id; 
       if (!userId && response.access_token) {
           const decoded = parseJwt(response.access_token);
@@ -54,7 +51,6 @@ export default function LoginPage() {
           throw new Error("Could not find User ID in login response.");
       }
 
-      // 4. Save to LocalStorage
       const userData = {
           user_id: userId,
           role: role,
@@ -62,13 +58,10 @@ export default function LoginPage() {
       };
       
       localStorage.setItem("user", JSON.stringify(userData));
-      
-      // OPTIONAL: Also set standalone token for safety/compatibility
       localStorage.setItem("token", response.access_token);
 
       toast.success(`Welcome back!`);
       
-      // 5. Redirect based on role
       if (role === 'student') {
         router.push('/dashboard/student');
       } else {
@@ -84,23 +77,25 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#1a1a1a] flex items-center justify-center relative overflow-hidden font-sans">
+    // --- MAIN CONTAINER (Full Screen Mobile) ---
+    <div className="min-h-screen bg-white flex flex-col font-sans">
       <Toaster position="top-center" />
-      <div className="w-[375px] h-[812px] bg-white rounded-[3rem] overflow-hidden relative shadow-2xl border-8 border-gray-900">
-        
-        <div className="bg-white pt-16 pb-2 px-6 text-center space-y-1">
-          <h1 className="text-3xl font-black text-[#8C1515] tracking-tight">Guru Setu</h1>
-          <p className="text-xs font-bold text-[#8C1515] uppercase tracking-widest leading-relaxed">
+      
+        {/* Branding Section */}
+        <div className="bg-white pt-20 pb-4 px-6 text-center space-y-1">
+          <h1 className="text-4xl font-black text-[#8C1515] tracking-tight">Guru Setu</h1>
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest leading-relaxed">
             Connecting Students & Faculty <br/> for Research Excellence
           </p>
         </div>
 
-        <div className="px-8 mt-6">
+        {/* Role Switcher */}
+        <div className="px-8 mt-6 max-w-md mx-auto w-full">
           <div className="flex bg-gray-100 p-1 rounded-full shadow-inner">
             <button
               type="button"
               onClick={() => setRole('student')}
-              className={`flex-1 py-2.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all ${
+              className={`flex-1 py-3 rounded-full text-[10px] font-black uppercase tracking-wider transition-all ${
                 role === 'student' ? 'bg-[#8C1515] text-white shadow-md' : 'text-gray-400 hover:text-gray-600'
               }`}
             >
@@ -109,7 +104,7 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => setRole('faculty')}
-              className={`flex-1 py-2.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all ${
+              className={`flex-1 py-3 rounded-full text-[10px] font-black uppercase tracking-wider transition-all ${
                 role === 'faculty' ? 'bg-[#8C1515] text-white shadow-md' : 'text-gray-400 hover:text-gray-600'
               }`}
             >
@@ -118,7 +113,8 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div className="px-8 space-y-6 mt-8">
+        {/* Login Form */}
+        <div className="px-8 space-y-6 mt-10 max-w-md mx-auto w-full">
           <form onSubmit={handleLogin} className="space-y-5">
             <div className="relative">
               <input 
@@ -126,7 +122,7 @@ export default function LoginPage() {
                 placeholder="University Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full border-2 border-[#8C1515] rounded-xl p-4 text-sm font-bold text-gray-700 outline-none focus:bg-gray-50 transition-colors"
+                className="w-full border-2 border-[#8C1515] rounded-2xl p-4 text-sm font-bold text-gray-700 outline-none focus:bg-gray-50 transition-colors"
                 required
               />
             </div>
@@ -136,7 +132,7 @@ export default function LoginPage() {
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full border-2 border-[#8C1515] rounded-xl p-4 text-sm font-bold text-gray-700 outline-none focus:bg-gray-50 transition-colors"
+                className="w-full border-2 border-[#8C1515] rounded-2xl p-4 text-sm font-bold text-gray-700 outline-none focus:bg-gray-50 transition-colors"
                 required
               />
               <button 
@@ -150,7 +146,7 @@ export default function LoginPage() {
             <div className="relative pt-4">
               <button 
                 disabled={loading}
-                className="w-full bg-[#8C1515] text-white py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg active:scale-95 transition-all disabled:opacity-70 flex items-center justify-center gap-2"
+                className="w-full bg-[#8C1515] text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl active:scale-95 transition-all disabled:opacity-70 flex items-center justify-center gap-2"
               >
                 {loading ? 'Verifying...' : `LOGIN AS ${role === 'student' ? 'STUDENT' : 'FACULTY'}`}
                 {!loading && (
@@ -161,14 +157,15 @@ export default function LoginPage() {
               </button>
             </div>
           </form>
-          <div className="text-center mt-6">
+
+          {/* Footer Links */}
+          <div className="text-center mt-8 pb-10">
             <p className="text-xs font-bold text-gray-400">New to Guru Setu?</p>
             <Link href="/signup" className="text-sm font-bold text-[#8C1515] hover:underline">
               Create Account
             </Link>
           </div>
         </div>
-      </div>
     </div>
   );
 }

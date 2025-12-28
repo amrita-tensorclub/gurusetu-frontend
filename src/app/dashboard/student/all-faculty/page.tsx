@@ -63,18 +63,15 @@ export default function AllFacultyPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#e0e0e0] flex items-center justify-center py-8 font-sans">
+    // --- MAIN CONTAINER (Full Screen Mobile) ---
+    <div className="min-h-screen bg-[#F2F2F2] flex flex-col font-sans">
       <Toaster position="top-center" />
 
-      {/* PHONE FRAME */}
-      <div className="w-full max-w-[390px] h-[844px] bg-[#F9F9F9] rounded-[3rem] shadow-2xl border-8 border-gray-900 overflow-hidden relative flex flex-col">
-        
-        {/* --- HEADER --- */}
-        <div className="bg-[#8C1515] text-white p-6 pt-12 pb-6 shadow-md z-10">
+        {/* --- HEADER (Sticky) --- */}
+        <div className="bg-[#8C1515] text-white p-6 pt-12 pb-6 shadow-md z-10 sticky top-0">
            <div className="flex items-center gap-3 mb-4">
               <button onClick={() => router.back()}><ChevronLeft size={24} /></button>
               <h1 className="text-xl font-black tracking-tight">All Faculty</h1>
-              {/* Removed top right Search icon here */}
            </div>
 
            {/* Search Bar */}
@@ -98,7 +95,7 @@ export default function AllFacultyPage() {
         </div>
 
         {/* --- FACULTY LIST --- */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3 pb-24 scrollbar-hide bg-[#F2F2F2]">
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 pb-24 scrollbar-hide">
            {loading && <p className="text-center text-gray-400 text-xs mt-10">Loading Faculty...</p>}
            
            {!loading && facultyList.map((fac) => (
@@ -136,11 +133,11 @@ export default function AllFacultyPage() {
            <div className="h-10"></div>
         </div>
 
-        {/* --- FILTER BOTTOM SHEET --- */}
+        {/* --- FILTER BOTTOM SHEET (Fixed Overlay) --- */}
         {isFilterOpen && (
-           <div className="absolute inset-0 bg-black/60 z-40 flex items-end">
-              <div className="bg-white w-full rounded-t-[2rem] p-6 animate-in slide-in-from-bottom duration-300">
-                 <div className="flex justify-between items-center mb-6">
+           <div className="fixed inset-0 bg-black/60 z-40 flex items-end">
+              <div className="bg-white w-full rounded-t-[2rem] p-6 animate-in slide-in-from-bottom duration-300 max-h-[80vh] overflow-y-auto">
+                 <div className="flex justify-between items-center mb-6 sticky top-0 bg-white pb-2">
                     <h3 className="font-black text-lg text-gray-800">Filter By</h3>
                     <button onClick={() => setIsFilterOpen(false)} className="bg-gray-100 p-1.5 rounded-full"><X size={18}/></button>
                  </div>
@@ -166,7 +163,7 @@ export default function AllFacultyPage() {
 
                  <button 
                    onClick={() => setIsFilterOpen(false)}
-                   className="w-full bg-[#8C1515] text-white py-3 rounded-xl font-black text-xs uppercase mt-8 shadow-lg"
+                   className="w-full bg-[#8C1515] text-white py-3 rounded-xl font-black text-xs uppercase mt-8 shadow-lg sticky bottom-0"
                  >
                    Apply Filters
                  </button>
@@ -174,15 +171,15 @@ export default function AllFacultyPage() {
            </div>
         )}
 
-        {/* --- DETAIL PROFILE MODAL (FULL SCREEN OVERLAY) --- */}
+        {/* --- DETAIL PROFILE MODAL (Fixed Overlay) --- */}
         {selectedFacultyId && (
-          <div className="absolute inset-0 bg-white z-50 overflow-y-auto animate-in slide-in-from-right duration-300">
+          <div className="fixed inset-0 bg-white z-50 overflow-y-auto animate-in slide-in-from-right duration-300">
               
               {/* Modal Header */}
               <div className="relative h-40 bg-[#F9F9F9] flex justify-center items-end pb-0 border-b border-gray-100">
                  <button 
                    onClick={() => setSelectedFacultyId(null)} 
-                   className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-sm text-gray-500"
+                   className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-sm text-gray-500 z-10"
                  >
                     <X size={20} />
                  </button>
@@ -281,7 +278,6 @@ export default function AllFacultyPage() {
               )}
           </div>
         )}
-      </div>
     </div>
   );
 }

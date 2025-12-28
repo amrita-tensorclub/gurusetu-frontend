@@ -93,14 +93,12 @@ export default function ExperienceInterests() {
   };
 
   return (
-    <div className="min-h-screen bg-[#e0e0e0] flex items-center justify-center py-8 font-sans">
+    // --- CHANGED: Full screen layout ---
+    <div className="min-h-screen bg-[#FDFBF7] font-sans flex flex-col relative pb-32">
       <Toaster position="top-center" />
 
-      {/* PHONE FRAME */}
-      <div className="w-full max-w-[390px] h-[844px] bg-[#FDFBF7] rounded-[3rem] shadow-2xl border-8 border-gray-900 overflow-hidden relative flex flex-col">
-
         {/* Header */}
-        <div className="bg-[#8C1515] text-white p-6 pt-12 pb-10 rounded-b-[2rem] shadow-lg flex items-center gap-4 relative z-10 flex-shrink-0">
+        <div className="bg-[#8C1515] text-white p-6 pt-12 pb-10 shadow-lg flex items-center gap-4 relative z-10 flex-shrink-0 sticky top-0">
             <button onClick={() => router.back()} className="bg-white/20 p-2 rounded-full backdrop-blur-sm hover:bg-white/30 transition-colors">
             <ChevronLeft size={20} />
             </button>
@@ -111,7 +109,7 @@ export default function ExperienceInterests() {
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto pb-32 scrollbar-hide px-6 pt-6 space-y-6">
+        <div className="flex-1 px-6 pt-6 space-y-6">
             
             {/* 1. AREAS OF INTEREST */}
             <div className="bg-white rounded-[2rem] shadow-sm p-5 border border-gray-100">
@@ -188,8 +186,8 @@ export default function ExperienceInterests() {
             </div>
         </div>
 
-        {/* Footer Button */}
-        <div className="absolute bottom-0 left-0 right-0 bg-white p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] rounded-t-[2rem]">
+        {/* Footer Button (Fixed Full Width) */}
+        <div className="fixed bottom-0 left-0 right-0 bg-white p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-40">
             <button 
             onClick={handleSaveAll}
             disabled={loading}
@@ -200,9 +198,9 @@ export default function ExperienceInterests() {
             </button>
         </div>
 
-        {/* --- MODAL: ADD PROJECT --- */}
+        {/* --- MODAL: ADD PROJECT (Fixed Overlay) --- */}
         {isModalOpen && (
-            <div className="absolute inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center backdrop-blur-sm animate-in fade-in duration-200">
                 <div className="bg-white w-full h-[85%] sm:h-auto sm:mx-4 sm:rounded-3xl rounded-t-[2.5rem] p-6 shadow-2xl flex flex-col animate-in slide-in-from-bottom duration-300">
                     
                     <div className="flex justify-between items-center mb-6">
@@ -291,7 +289,6 @@ export default function ExperienceInterests() {
             </div>
         )}
 
-      </div>
     </div>
   );
 }
