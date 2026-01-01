@@ -6,6 +6,9 @@ import { useRouter } from 'next/navigation';
 import { facultyDashboardService } from '@/services/facultyDashboardService';
 import toast, { Toaster } from 'react-hot-toast';
 
+// --- NEW IMPORT ---
+import StatusMapManager from '@/components/dashboard/StatusMapManager'; 
+
 const getUserId = () => {
   if (typeof window !== "undefined") {
     const userStr = localStorage.getItem("user");
@@ -196,6 +199,8 @@ export default function FacultyProfilePage() {
 
       <div className="p-6 space-y-6">
         
+      
+
         {/* Profile Picture */}
         <div className="flex flex-col items-center -mt-2">
             <div className="relative">
@@ -231,6 +236,10 @@ export default function FacultyProfilePage() {
                 placeholder="Dr. Your Name"
             />
         </div>
+          {/* --- NEW: LIVE STATUS & MAP MANAGER --- */}
+        {/* Only show if we have a valid User ID */}
+        {userId && <StatusMapManager facultyId={userId} />}
+        {/* -------------------------------------- */}
 
         {/* Basic Info Fields */}
         <div className="space-y-4">
