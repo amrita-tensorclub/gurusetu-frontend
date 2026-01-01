@@ -22,6 +22,7 @@ export interface NotificationItem {
 export interface ProjectCreate {
   title: string;
   description: string;
+  duration?: string; // <--- Add this line (Optional field)
   from_date: string;
   to_date: string;
   tools: string[];

@@ -46,7 +46,6 @@ export default function StudentProfilePage() {
 
         const data = await dashboardService.getStudentFullProfile(uid);
         
-        // Update State
         setFormData({
             name: data.name || "",
             phone: data.phone || "",
@@ -56,7 +55,7 @@ export default function StudentProfilePage() {
             bio: data.bio || "",
             profile_picture: data.profile_picture || "",
             
-            // Hidden Data Preservation
+            // Ensure arrays are initialized
             skills: data.skills || [],
             interests: data.interests || [],
             projects: data.projects || [],
@@ -94,7 +93,26 @@ export default function StudentProfilePage() {
   const handleSave = async () => {
     try {
       setSaving(true);
-      await dashboardService.updateStudentProfile(formData);
+      
+      // SANITIZE PAYLOAD: Ensure no null values are sent to strict backend
+      const payload = {
+        ...formData,
+        projects: formData.projects.map(p => ({
+            ...p,
+            duration: p.duration || "",
+            from_date: p.from_date || "",
+            to_date: p.to_date || "",
+            description: p.description || "",
+            tools: p.tools || []
+        })),
+        publications: formData.publications.map(p => ({
+            ...p,
+            publisher: p.publisher || "",
+            link: p.link || ""
+        }))
+      };
+
+      await dashboardService.updateStudentProfile(payload);
       toast.success("Profile saved successfully!");
     } catch (err) {
       toast.error("Failed to save changes");
@@ -106,7 +124,6 @@ export default function StudentProfilePage() {
   if (loading) return <div className="h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-[#990033]" /></div>;
 
   return (
-    // --- CHANGED: Removed max-w-md, shadow, border to make it full screen mobile ---
     <div className="min-h-screen bg-white font-sans relative">
       <Toaster position="bottom-center" />
 
@@ -115,7 +132,6 @@ export default function StudentProfilePage() {
         <div className="flex justify-between items-center text-white">
           <button onClick={() => router.back()} className="p-1 -ml-2"><ChevronLeft size={28} /></button>
           <h1 className="text-xl font-bold">My Profile</h1>
-          {/* Spacer div to keep title centered since we removed the edit button */}
           <div className="w-8"></div>
         </div>
       </div>
@@ -141,7 +157,7 @@ export default function StudentProfilePage() {
       </div>
 
       {/* Form Fields */}
-      <div className="px-6 space-y-5 pb-40">
+      <div className="px-6 space-y-5 pb-32">
          
          <div className="group">
             <label className="block text-[#990033] text-xs font-medium mb-1 ml-1 group-focus-within:font-bold">Name</label>
@@ -153,7 +169,7 @@ export default function StudentProfilePage() {
          <div className="group">
             <label className="block text-[#990033] text-xs font-medium mb-1 ml-1">Department</label>
             <div className="border border-gray-300 rounded-lg px-3 py-2.5 relative focus-within:border-[#990033] focus-within:border-2 transition-all">
-               <select value={formData.department} onChange={e => handleInputChange('department', e.target.value)} className="w-full text-sm text-gray-900 outline-none appearance-none bg-transparent font-medium">
+               <select value={formData.department} onChange={e => handleInputChange('department', e.target.value)} className="w-full text-sm text-gray-900 outline-none appearance-none bg-transparent font-medium bg-white">
                   <option>Computer Science & Engineering (CSE)</option>
                   <option>Artificial Intelligence (AIE)</option>
                   <option>Electronics & Communication (ECE)</option>
@@ -166,7 +182,7 @@ export default function StudentProfilePage() {
          <div className="group">
             <label className="block text-[#990033] text-xs font-medium mb-1 ml-1">Year / Batch</label>
             <div className="border border-gray-300 rounded-lg px-3 py-2.5 relative focus-within:border-[#990033] focus-within:border-2 transition-all">
-               <select value={formData.batch} onChange={e => handleInputChange('batch', e.target.value)} className="w-full text-sm text-gray-900 outline-none appearance-none bg-transparent font-medium">
+               <select value={formData.batch} onChange={e => handleInputChange('batch', e.target.value)} className="w-full text-sm text-gray-900 outline-none appearance-none bg-transparent font-medium bg-white">
                   <option>3rd Year / 2022-2026</option>
                   <option>2nd Year / 2023-2027</option>
                   <option>4th Year / 2021-2025</option>
@@ -200,7 +216,6 @@ export default function StudentProfilePage() {
       </div>
 
       {/* Footer */}
-      {/* --- CHANGED: Removed max-w-md, added w-full to span full screen --- */}
       <div className="fixed bottom-0 left-0 right-0 w-full bg-white border-t border-gray-100 p-4 z-50">
          <button onClick={handleSave} disabled={saving} className="w-full bg-[#990033] text-white font-bold py-3.5 rounded-xl shadow-lg active:scale-[0.98] transition-transform flex justify-center items-center gap-2">
             {saving ? <Loader2 className="animate-spin" size={20} /> : "Save Changes"}
