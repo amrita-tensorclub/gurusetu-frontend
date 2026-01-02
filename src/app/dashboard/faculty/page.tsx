@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { Menu, Bell, ChevronRight, X, Mail, MapPin, LogOut } from 'lucide-react'; 
+import { Menu, Bell, ChevronRight, X, Folder } from 'lucide-react'; 
 import { useRouter } from 'next/navigation';
 import { 
   facultyDashboardService, 
@@ -146,8 +146,8 @@ export default function FacultyDashboard() {
                           : 'bg-gray-50 text-gray-700'
                       }`}
                     >
-                       <span className="flex items-center gap-3">{item.label}</span>
-                       {item.label === 'Logout' ? <LogOut size={16} /> : <ChevronRight size={16} className="text-gray-400" />}
+                        <span className="flex items-center gap-3">{item.label}</span>
+                        {item.label === 'Logout' ? <LogOut size={16} /> : <ChevronRight size={16} className="text-gray-400" />}
                     </button>
                  ))}
               </div>
@@ -191,10 +191,11 @@ export default function FacultyDashboard() {
                    <button 
                      key={tag} 
                      onClick={() => handleFilterClick(tag)}
+                     // --- FIX: Changed text-gray-50 to text-gray-600 ---
                      className={`border px-3 py-1 rounded-full text-[10px] font-bold whitespace-nowrap transition-colors ${
                         activeFilter === tag 
                         ? 'bg-[#8C1515] text-white border-[#8C1515]' 
-                        : 'bg-white border-gray-200 text-gray-50'
+                        : 'bg-white border-gray-200 text-gray-600' 
                      }`}
                    >
                      {tag}
@@ -202,44 +203,53 @@ export default function FacultyDashboard() {
                  ))}
               </div>
 
-              <div className="space-y-4">
-                 {data?.recommended_students.map(student => (
-                   <div key={student.student_id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                      <div className="flex justify-between items-start mb-4">
-                         <div onClick={() => openStudentProfile(student.student_id)} className="flex gap-3 cursor-pointer">
-                            <div className="w-14 h-14 rounded-full bg-gray-100 overflow-hidden border border-gray-100">
-                              <img src={student.profile_picture || "https://avatar.iran.liara.run/public/girl"} className="w-full h-full object-cover" />
+              {/* NEW: Conditional Rendering for Empty State */}
+              {data?.recommended_students && data.recommended_students.length > 0 ? (
+                <div className="space-y-4">
+                    {data.recommended_students.map(student => (
+                      <div key={student.student_id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                        <div className="flex justify-between items-start mb-4">
+                            <div onClick={() => openStudentProfile(student.student_id)} className="flex gap-3 cursor-pointer">
+                              <div className="w-14 h-14 rounded-full bg-gray-100 overflow-hidden border border-gray-100">
+                                <img src={student.profile_picture || "https://avatar.iran.liara.run/public/girl"} className="w-full h-full object-cover" />
+                              </div>
+                              <div>
+                                 <h3 className="text-gray-900 font-black text-sm">{student.name}</h3>
+                                 <p className="text-gray-500 text-xs font-bold">{student.department}, {student.batch || 'Batch N/A'}</p>
+                              </div>
                             </div>
-                            <div>
-                               <h3 className="text-gray-900 font-black text-sm">{student.name}</h3>
-                               <p className="text-gray-500 text-xs font-bold">{student.department}, {student.batch || 'Batch N/A'}</p>
+                            <div className="bg-[#FFF8E1] border border-[#FFE082] px-2 py-1 rounded-lg text-center">
+                               <span className="block text-[8px] font-bold text-gray-400 uppercase">Match</span>
+                               <span className="block text-lg font-black text-[#D4AF37] leading-none">{student.match_score}</span>
                             </div>
-                         </div>
-                         <div className="bg-[#FFF8E1] border border-[#FFE082] px-2 py-1 rounded-lg text-center">
-                            <span className="block text-[8px] font-bold text-gray-400 uppercase">Match</span>
-                            <span className="block text-lg font-black text-[#D4AF37] leading-none">{student.match_score}</span>
-                         </div>
-                      </div>
+                        </div>
 
-                      <div className="flex flex-wrap gap-1.5 mb-5">
-                          {(student.matched_skills || []).slice(0,3).map(skill => (
-                           <span key={skill} className="bg-[#8C1515] text-white px-2 py-0.5 rounded-md text-[9px] font-bold">
-                             {skill}
-                           </span>
-                          ))}
+                        <div className="flex flex-wrap gap-1.5 mb-5">
+                            {(student.matched_skills || []).slice(0,3).map(skill => (
+                              <span key={skill} className="bg-[#8C1515] text-white px-2 py-0.5 rounded-md text-[9px] font-bold">
+                                {skill}
+                              </span>
+                            ))}
+                        </div>
+                        
+                        <div className="flex gap-3">
+                            <button onClick={() => openStudentProfile(student.student_id)} className="flex-1 border-2 border-[#8C1515] text-[#8C1515] py-2.5 rounded-xl font-black text-[10px] uppercase">
+                              View Profile
+                            </button>
+                            <button onClick={() => handleShortlistClick(student.student_id)} className="flex-1 bg-[#8C1515] text-white py-2.5 rounded-xl font-black text-[10px] uppercase shadow-md">
+                              Shortlist
+                            </button>
+                        </div>
                       </div>
-                      
-                      <div className="flex gap-3">
-                          <button onClick={() => openStudentProfile(student.student_id)} className="flex-1 border-2 border-[#8C1515] text-[#8C1515] py-2.5 rounded-xl font-black text-[10px] uppercase">
-                            View Profile
-                          </button>
-                          <button onClick={() => handleShortlistClick(student.student_id)} className="flex-1 bg-[#8C1515] text-white py-2.5 rounded-xl font-black text-[10px] uppercase shadow-md">
-                            Shortlist
-                          </button>
-                      </div>
-                   </div>
-                 ))}
-              </div>
+                    ))}
+                </div>
+              ) : (
+                // --- EMPTY STATE CARD ---
+                <div className="bg-white p-6 rounded-2xl border border-gray-100 text-center flex flex-col items-center justify-center h-32">
+                   <p className="text-gray-400 text-xs font-bold">No specific recommendations yet.</p>
+                   <p className="text-[10px] text-gray-300 mt-1">Try updating your domain interests.</p>
+                </div>
+              )}
            </div>
 
            {/* Faculty Collaborations Preview */}
@@ -250,23 +260,33 @@ export default function FacultyDashboard() {
                    View All <ChevronRight size={14} />
                  </button>
               </div>
-              <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
-                 {data?.faculty_collaborations.map(collab => (
-                    <div key={collab.faculty_id + collab.project_title} className="min-w-[200px] bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-                       <div onClick={() => openFacultyProfile(collab.faculty_id)} className="flex items-center gap-2 mb-2 cursor-pointer">
-                          <div className="w-6 h-6 rounded-full bg-gray-200 overflow-hidden">
-                             <img src={collab.faculty_pic || "https://avatar.iran.liara.run/public/boy"} className="w-full h-full object-cover" />
-                          </div>
-                          <div>
-                             <p className="text-[10px] font-bold text-gray-900">{collab.faculty_name}</p>
-                             <p className="text-[8px] font-bold text-gray-400">{collab.faculty_dept}</p>
-                          </div>
-                       </div>
-                       <h4 className="text-xs font-black text-gray-800 leading-tight mb-1 line-clamp-2">{collab.project_title}</h4>
-                       <p className="text-[9px] text-[#8C1515] font-bold">{collab.collaboration_type}</p>
-                    </div>
-                 ))}
-              </div>
+              
+              {data?.faculty_collaborations && data.faculty_collaborations.length > 0 ? (
+                <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
+                    {data.faculty_collaborations.map(collab => (
+                      <div key={collab.faculty_id + collab.project_title} className="min-w-[200px] bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                         <div onClick={() => openFacultyProfile(collab.faculty_id)} className="flex items-center gap-2 mb-2 cursor-pointer">
+                            <div className="w-6 h-6 rounded-full bg-gray-200 overflow-hidden">
+                               <img src={collab.faculty_pic || "https://avatar.iran.liara.run/public/boy"} className="w-full h-full object-cover" />
+                            </div>
+                            <div>
+                               <p className="text-[10px] font-bold text-gray-900">{collab.faculty_name}</p>
+                               <p className="text-[8px] font-bold text-gray-400">{collab.faculty_dept}</p>
+                            </div>
+                         </div>
+                         <h4 className="text-xs font-black text-gray-800 leading-tight mb-1 line-clamp-2">{collab.project_title}</h4>
+                         <p className="text-[9px] text-[#8C1515] font-bold">{collab.collaboration_type}</p>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                // --- EMPTY STATE CARD ---
+                <div className="bg-white p-10 rounded-3xl border border-gray-100 text-center flex flex-col items-center justify-center">
+                    <Folder size={32} className="text-gray-200 mb-2" />
+                    <p className="text-gray-400 text-xs font-bold">No collaborations found.</p>
+                    <button onClick={() => loadData(activeFilter)} className="mt-4 text-[#8C1515] text-[10px] font-black underline">Check Again</button>
+                </div>
+              )}
            </div>
         </div>
 
@@ -328,5 +348,26 @@ export default function FacultyDashboard() {
         )}
 
     </div>
+  );
+}
+
+function LogOut(props: any) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" x2="9" y1="12" y2="12" />
+    </svg>
   );
 }
