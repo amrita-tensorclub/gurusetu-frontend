@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { ChevronLeft, Bell, Check, User, Mail, MapPin, X } from 'lucide-react';
+import { ChevronLeft, Bell, Check, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { notificationService, NotificationItem } from '@/services/notificationService';
 import { facultyDashboardService, StudentPublicProfile, FacultyProfile } from '@/services/facultyDashboardService';
@@ -44,7 +44,8 @@ export default function NotificationsPage() {
     setFacultyProfile(null);
 
     try {
-      if (role.toLowerCase() === 'student') {
+      // Check role case-insensitively
+      if (role && role.toLowerCase() === 'student') {
         const data = await facultyDashboardService.getStudentProfile(id);
         setStudentProfile(data);
       } else {
@@ -58,7 +59,6 @@ export default function NotificationsPage() {
   };
 
   return (
-    // --- CHANGED: Full Screen Mobile Layout ---
     <div className="min-h-screen bg-[#F9F9F9] flex flex-col font-sans">
       <Toaster position="top-center" />
 
@@ -85,9 +85,9 @@ export default function NotificationsPage() {
                key={notif.id} 
                className={`p-4 border-b border-gray-100 flex gap-3 transition-colors ${notif.is_read ? 'bg-white' : 'bg-red-50'}`}
              >
-                {/* Clickable Avatar if Trigger ID exists */}
+                {/* Clickable Avatar */}
                 <div 
-                  onClick={() => notif.trigger_id && handleProfileClick(notif.trigger_id, notif.trigger_role || 'student')}
+                  onClick={() => notif.trigger_id && handleProfileClick(notif.trigger_id, notif.trigger_role || 'faculty')}
                   className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${notif.trigger_id ? 'cursor-pointer hover:ring-2 ring-[#8C1515] bg-gray-200' : 'bg-[#8C1515]/10'}`}
                 >
                    {notif.trigger_id ? (
@@ -106,16 +106,6 @@ export default function NotificationsPage() {
                       <span className="text-[10px] text-gray-400 font-bold">
                         {new Date(notif.date).toLocaleDateString()} • {new Date(notif.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                       </span>
-                      
-                      {/* View Profile Button if Interest */}
-                      {notif.type === 'INTEREST' && notif.trigger_id && (
-                        <button 
-                          onClick={() => handleProfileClick(notif.trigger_id!, notif.trigger_role || 'student')}
-                          className="text-[#8C1515] text-[10px] font-black underline"
-                        >
-                          View Profile
-                        </button>
-                      )}
                    </div>
                 </div>
 
@@ -128,7 +118,7 @@ export default function NotificationsPage() {
            ))}
         </div>
 
-        {/* --- PROFILE MODAL OVERLAY (Fixed) --- */}
+        {/* --- PROFILE MODAL OVERLAY --- */}
         {isModalOpen && (
            <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center">
               <div className="bg-white w-full h-[85%] sm:h-[90%] rounded-t-[2rem] sm:rounded-[2rem] overflow-hidden relative animate-in slide-in-from-bottom duration-300 flex flex-col">
@@ -183,10 +173,6 @@ export default function NotificationsPage() {
                           <p className="text-xs font-bold text-[#8C1515] mt-1">{facultyProfile.info.designation}</p>
                           <p className="text-[10px] text-gray-500 font-bold">{facultyProfile.info.department}</p>
                           
-                          <div className="flex items-center justify-center gap-2 mt-2 text-xs text-gray-600">
-                             <Mail size={12} /> {facultyProfile.info.email}
-                          </div>
-
                           <div className="mt-6 text-left">
                              <h3 className="text-[#8C1515] font-black text-xs uppercase mb-2">Current Openings</h3>
                              {facultyProfile.openings.map(op => (
