@@ -19,7 +19,8 @@ export const notificationService = {
     const { data } = await api.put(`/dashboard/notifications/${id}/read`);
     return data;
   },
-  expressInterest: async (projectId: string) => {
+expressInterest: async (projectId: string) => {
+    // This matches the endpoint: @router.post("/express-interest/{project_id}")
     const { data } = await api.post(`/dashboard/express-interest/${projectId}`);
     return data;
   }

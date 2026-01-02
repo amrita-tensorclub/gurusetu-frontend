@@ -3,6 +3,24 @@ import api from "./api";
 /* =========================
    Interfaces
 ========================= */
+
+export interface InterestedFaculty {
+  faculty_id: string;
+  name: string;
+  department: string;
+  email: string;
+  profile_picture?: string;
+}
+
+export interface CreateOpeningPayload {
+  title: string;
+  description: string;
+  required_skills: string[];
+  expected_duration: string;
+  target_years: string[];
+  min_cgpa: number;
+  deadline: string; // YYYY-MM-DD
+}
 export interface ProjectStats {
   active_projects: number;
   total_applicants: number;
@@ -16,7 +34,11 @@ export interface FacultyProject {
   domain: string;
   posted_date: string;
   applicant_count: number;
-  shortlisted_count: number; // <--- Ensure this is also here
+  shortlisted_count: number;
+  
+  // These are required for the new tabs to work:
+  collaboration_type?: string; 
+  interest_count?: number;     
 }
 export interface Applicant {
   student_id: string;
@@ -84,15 +106,19 @@ export interface FacultyDashboardData {
   active_openings: any[];
 }
 export interface CollabProject {
+  project_id: string;       // Backend sends 'project_id'
   faculty_id: string;
   faculty_name: string;
   department: string;
   title: string;
   description: string;
   collaboration_type: string;
-  tags: string[];
+  tags: string[];           // <--- This fixes the Red Line
+  
+  // Optional fields (Frontend uses them, but backend might not send them yet)
+  faculty_pic?: string;     
+  id?: string;              // Helper if you map project_id to id
 }
-
 export interface FacultyMenuData {
   name: string;
   employee_id: string;
@@ -219,15 +245,18 @@ getFacultyHome: async (filter?: string) => {
   },
 
   // ---- Openings ----
-  postOpening: async (opening: any) => {
-      const { data } = await api.post("/openings/", opening);
-      return data;
+  postOpening: async (opening: CreateOpeningPayload) => {
+        const { data } = await api.post("/openings/", opening);
+        return data;
     },
 
-  deleteOpening: async (openingId: string): Promise<any> => {
-    const { data } = await api.delete(`/openings/${openingId}`);
+// frontend/src/services/facultyDashboardService.ts
+
+deleteOpening: async (id: string) => {
+    // This assumes your backend has this router mounted at /openings
+    const { data } = await api.delete(`/openings/${id}`); 
     return data;
-  },
+},
 uploadImage: async (file: File) => {
     const formData = new FormData();
     formData.append("file", file);
@@ -256,5 +285,10 @@ getProjectShortlisted: async (projectId: string) => {
         status: status
     });
     return data;
-  }
+  },
+  getProjectInterests: async (projectId: string): Promise<InterestedFaculty[]> => {
+    const { data } = await api.get(`/dashboard/faculty/projects/${projectId}/interests`);
+    return data;
+  },
+  
 };
