@@ -28,3 +28,28 @@ export interface SignupData {
   roll_no?: string;     // Optional: only for students
   employee_id?: string; // Optional: only for faculty
 }
+
+export interface Project {
+  id: string;
+  title: string;
+  description: string;
+  status: 'Ongoing' | 'Completed';
+  techStack: string[];
+}
+
+export interface Faculty {
+  id: string;
+  name: string;
+  department: string;
+  designation: string;
+  email: string;
+  profile_picture?: string;
+  // --- NEW FIELDS FOR LOCATOR ---
+  status?: 'Available' | 'Busy' | 'In Class' | 'Away';
+  status_source?: 'Manual' | 'Timetable' | 'AI Prediction' | 'Student-QR';
+  cabin_number?: string;
+  coordinates?: {
+    top: number;
+    left: number;
+  };
+}
