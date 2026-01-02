@@ -54,8 +54,6 @@ export default function StudentProfilePage() {
             batch: data.batch || "3rd Year / 2022-2026",
             bio: data.bio || "",
             profile_picture: data.profile_picture || "",
-            
-            // Ensure arrays are initialized
             skills: data.skills || [],
             interests: data.interests || [],
             projects: data.projects || [],
@@ -93,8 +91,6 @@ export default function StudentProfilePage() {
   const handleSave = async () => {
     try {
       setSaving(true);
-      
-      // SANITIZE PAYLOAD: Ensure no null values are sent to strict backend
       const payload = {
         ...formData,
         projects: formData.projects.map(p => ({
@@ -127,10 +123,10 @@ export default function StudentProfilePage() {
     <div className="min-h-screen bg-white font-sans relative">
       <Toaster position="bottom-center" />
 
-      {/* Header */}
-      <div className="bg-[#990033] px-5 pt-8 pb-20 sticky top-0 z-0">
+      {/* Header - REMOVED 'sticky' to fix sliding issue */}
+      <div className="bg-[#990033] px-5 pt-8 pb-20 relative top-0 z-0">
         <div className="flex justify-between items-center text-white">
-          <button onClick={() => router.back()} className="p-1 -ml-2"><ChevronLeft size={28} /></button>
+          <button onClick={() => router.back()} className="p-1 -ml-2 hover:bg-white/10 rounded-full transition-colors"><ChevronLeft size={28} /></button>
           <h1 className="text-xl font-bold">My Profile</h1>
           <div className="w-8"></div>
         </div>
@@ -148,16 +144,16 @@ export default function StudentProfilePage() {
             <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*"/>
          </div>
 
-         <div className="text-center mt-3 mb-6 space-y-1">
-            <h2 className="text-xl font-bold text-gray-900">{formData.name || "Student Name"}</h2>
+         <div className="text-center mt-3 mb-2 space-y-1 px-4">
+            <h2 className="text-xl font-bold text-gray-900 leading-tight">{formData.name || "Student Name"}</h2>
             <p className="text-gray-500 text-xs font-medium">{formData.department.split('(')[0]}</p>
             <div className="flex items-center justify-center gap-1 text-gray-500 text-xs"><Mail size={12} /><span>{displayEmail}</span></div>
             <p className="text-gray-400 text-xs">Roll Number: {rollNo}</p>
          </div>
       </div>
 
-      {/* Form Fields */}
-      <div className="px-6 space-y-5 pb-32">
+      {/* Form Fields - ADDED 'mt-4' for better spacing */}
+      <div className="px-6 space-y-5 pb-32 mt-4">
          
          <div className="group">
             <label className="block text-[#990033] text-xs font-medium mb-1 ml-1 group-focus-within:font-bold">Name</label>
