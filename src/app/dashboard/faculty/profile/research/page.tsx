@@ -2,9 +2,20 @@
 
 import React, { useState, useEffect } from 'react';
 import { ChevronRight, Plus, Trash2, X, Loader2, Save } from 'lucide-react';
-import { facultyDashboardService, WorkItem } from '@/services/facultyDashboardService';
+import { facultyDashboardService, WorkItem} from '@/services/facultyDashboardService';
 import { useRouter } from 'next/navigation';
 import toast, { Toaster } from 'react-hot-toast';
+
+// Explicit interface to resolve TypeScript property errors
+interface OpeningFormState {
+  title: string;
+  description: string;
+  skills: string[];
+  duration: string;
+  cgpa: string;
+  years: string[];
+  deadline: string;
+}
 
 const getUserId = () => {
   if (typeof window !== "undefined") {
@@ -33,20 +44,22 @@ export default function ResearchExperiencePage() {
   const [newDomain, setNewDomain] = useState("");
   
   const [isPostingOpening, setIsPostingOpening] = useState(false);
-  const [newOpening, setNewOpening] = useState({
+  
+  // ✅ UPDATED: Explicitly typed state to fix red lines
+  const [newOpening, setNewOpening] = useState<OpeningFormState>({
     title: "",
     description: "",
-    skills: [] as string[],
-    duration: "Jan 2024 - May 2024",
+    skills: [],
+    duration: "Jan 2026 - May 2026",
     cgpa: "8.0",
-    years: ["3rd Year"] as string[],
-    deadline: "2024-12-31"
+    years: ["3rd Year"],
+    deadline: "2026-12-31"
   });
   const [newSkill, setNewSkill] = useState("");
 
   const [isAddingWork, setIsAddingWork] = useState(false);
   const [newWork, setNewWork] = useState({
-    year: "2024",
+    year: "2026",
     title: "",
     type: "Publication",
     collaborators: "",
@@ -66,9 +79,10 @@ export default function ResearchExperiencePage() {
   const loadProfile = async (id: string) => {
     try {
       const data = await facultyDashboardService.getFacultyProfile(id);
-      setDomains(data.info.interests || []);
+      // Ensure we access data correctly based on service return type
+      setDomains(data.info?.interests || []);
       setOpenings(data.openings || []);
-      const mappedWork = data.previous_work.map((w: any) => ({
+      const mappedWork = (data.previous_work || []).map((w: any) => ({
         title: w.title,
         type: w.type || "Publication",
         year: w.year,
@@ -128,6 +142,7 @@ export default function ResearchExperiencePage() {
     
     try {
         setLoading(true);
+        // ✅ Mapping local state to the payload expected by the service
         const openingPayload = {
             title: newOpening.title,
             description: newOpening.description,
@@ -143,8 +158,8 @@ export default function ResearchExperiencePage() {
         
         setIsPostingOpening(false);
         setNewOpening({
-            title: "", description: "", skills: [], duration: "Jan 2024 - May 2024",
-            cgpa: "8.0", years: ["3rd Year"], deadline: "2024-12-31"
+            title: "", description: "", skills: [], duration: "Jan 2026 - May 2026",
+            cgpa: "8.0", years: ["3rd Year"], deadline: "2026-12-31"
         });
         toast.success("Opening Published!");
     } catch (err) {
@@ -159,11 +174,12 @@ export default function ResearchExperiencePage() {
     if (!newWork.title || !newWork.year) return;
     setPreviousWork([...previousWork, newWork]);
     setIsAddingWork(false);
-    setNewWork({ year: "2024", title: "", type: "Publication", collaborators: "", outcome: "" });
+    setNewWork({ year: "2026", title: "", type: "Publication", collaborators: "", outcome: "" });
   };
 
   const handleDeleteOpening = async (id: string) => {
       if(confirm("Remove this opening?")) {
+          // Add logic to call service.deleteOpening(id) if available
           setOpenings(openings.filter(o => o.id !== id));
           toast.success("Opening removed");
       }
@@ -172,11 +188,10 @@ export default function ResearchExperiencePage() {
   if (loading) return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin text-[#8C1515]" /></div>;
 
   return (
-    // --- CHANGED: Full Screen Mobile Layout ---
     <div className="min-h-screen bg-white font-sans relative pb-40">
       <Toaster position="bottom-center" />
       
-      {/* Header (Sticky) */}
+      {/* Header */}
       <div className="bg-[#8C1515] text-white p-5 flex items-center justify-between sticky top-0 z-20 shadow-md">
         <div className="flex items-center gap-4" onClick={() => router.back()}>
           <ChevronRight className="rotate-180 cursor-pointer" />
@@ -377,7 +392,7 @@ export default function ResearchExperiencePage() {
         </div>
       </div>
 
-      {/* Footer Button (Fixed Full Width) */}
+      {/* Footer Button */}
       <div className="fixed bottom-0 left-0 right-0 w-full bg-white border-t border-gray-200 p-4 pb-6 z-30 flex justify-center shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
          <button 
             onClick={handleSaveAll}

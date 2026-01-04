@@ -63,8 +63,12 @@ export interface Opening {
 }
 
 export interface StudentDashboardData {
-  user_info: { name: string; roll_no: string; };
-  unread_count: number; // <--- ADDED THIS FIELD
+  user_info: {
+    name: string;
+    department: string; // Ensure this is explicitly defined
+    roll_no?: string;
+  };
+  unread_count: number;
   recommended_openings: Opening[];
   all_openings: Opening[];
 }

@@ -54,13 +54,13 @@ export interface Applicant {
 }
 
 export interface OpeningData {
-  title: string;
-  description: string;
-  required_skills: string[];
-  expected_duration: string;
-  target_years: string[];
-  min_cgpa: string;
-  deadline: string;
+    title: string;
+    description: string;
+    required_skills: string[];   // Maps to 'skills' in your component
+    expected_duration: string;   // Maps to 'duration' in your component
+    target_years: string[];      // Maps to 'years' in your component
+    min_cgpa: string;            // Maps to 'cgpa' in your component
+    deadline: string;            // Maps to 'deadline' in your component
 }
 
 export interface WorkItem {
@@ -255,9 +255,9 @@ getFacultyHome: async (filter?: string) => {
   },
 
   // ---- Openings ----
-  postOpening: async (opening: CreateOpeningPayload) => {
-        const { data } = await api.post("/openings/", opening);
-        return data;
+    async postOpening(data: OpeningData): Promise<any> {
+        const response = await api.post('/faculty/post-opening', data);
+        return response.data;
     },
 
 // frontend/src/services/facultyDashboardService.ts
