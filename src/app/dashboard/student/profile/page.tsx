@@ -14,12 +14,10 @@ export default function StudentProfilePage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   
-  // Display fields
-  const [rollNo, setRollNo] = useState("");
-  const [displayEmail, setDisplayEmail] = useState("");
-
-  const [formData, setFormData] = useState<StudentProfileData>({
+  // Form State
+  const [formData, setFormData] = useState<StudentProfileData & { roll_no: string }>({
     name: "",
+    roll_no: "",
     phone: "",
     email: "",
     department: "",
@@ -40,18 +38,16 @@ export default function StudentProfilePage() {
         
         const u = JSON.parse(userStr);
         const uid = u.user_id || u.user?.user_id;
-        const rNo = u.roll_no || u.user?.roll_no || "CB.SC.U4...";
-        setRollNo(rNo);
-        setDisplayEmail(u.email || `${rNo.toLowerCase()}@amrita.edu`);
-
+        
         const data = await dashboardService.getStudentFullProfile(uid);
         
         setFormData({
             name: data.name || "",
+            roll_no: data.roll_no || u.roll_no || "",
             phone: data.phone || "",
-            email: data.email || "", 
-            department: data.department || "Computer Science (CSE)",
-            batch: data.batch || "3rd Year / 2022-2026",
+            email: data.email || "",
+            department: data.department || "",
+            batch: data.batch || "",
             bio: data.bio || "",
             profile_picture: data.profile_picture || "",
             skills: data.skills || [],
@@ -68,7 +64,7 @@ export default function StudentProfilePage() {
     loadProfile();
   }, [router]);
 
-  const handleInputChange = (field: keyof StudentProfileData, value: string) => {
+  const handleInputChange = (field: keyof StudentProfileData | 'roll_no', value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -117,13 +113,24 @@ export default function StudentProfilePage() {
     }
   };
 
+  // List of standard departments for validation/dropdown
+  const departments = [
+    "Computer Science & Engineering (CSE)",
+    "Artificial Intelligence (AIE)",
+    "Cyber Security (CYC)",
+    "Mechanical Engineering (MECH)",
+    "Civil Engineering (CIVIL)",
+    "Electrical & Electronics Engineering (EEE)",
+    "Electronics & Communication Engineering (ECE)"
+  ];
+
   if (loading) return <div className="h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-[#990033]" /></div>;
 
   return (
     <div className="min-h-screen bg-white font-sans relative">
       <Toaster position="bottom-center" />
 
-      {/* Header - REMOVED 'sticky' to fix sliding issue */}
+      {/* Header */}
       <div className="bg-[#990033] px-5 pt-8 pb-20 relative top-0 z-0">
         <div className="flex justify-between items-center text-white">
           <button onClick={() => router.back()} className="p-1 -ml-2 hover:bg-white/10 rounded-full transition-colors"><ChevronLeft size={28} /></button>
@@ -145,14 +152,14 @@ export default function StudentProfilePage() {
          </div>
 
          <div className="text-center mt-3 mb-2 space-y-1 px-4">
-            <h2 className="text-xl font-bold text-gray-900 leading-tight">{formData.name || "Student Name"}</h2>
-            <p className="text-gray-500 text-xs font-medium">{formData.department.split('(')[0]}</p>
-            <div className="flex items-center justify-center gap-1 text-gray-500 text-xs"><Mail size={12} /><span>{displayEmail}</span></div>
-            <p className="text-gray-400 text-xs">Roll Number: {rollNo}</p>
+            <h2 className="text-xl font-bold text-gray-900 leading-tight">{formData.name || "Student"}</h2>
+            <p className="text-gray-500 text-xs font-medium">{formData.department}</p>
+            <div className="flex items-center justify-center gap-1 text-gray-500 text-xs"><Mail size={12} /><span>{formData.email}</span></div>
+            <p className="text-gray-400 text-xs font-bold text-[#990033] mt-1">{formData.roll_no}</p>
          </div>
       </div>
 
-      {/* Form Fields - ADDED 'mt-4' for better spacing */}
+      {/* Form Fields */}
       <div className="px-6 space-y-5 pb-32 mt-4">
          
          <div className="group">
@@ -163,13 +170,35 @@ export default function StudentProfilePage() {
          </div>
 
          <div className="group">
+            <label className="block text-[#990033] text-xs font-medium mb-1 ml-1 group-focus-within:font-bold">Roll Number</label>
+            <div className="border border-gray-300 rounded-lg px-3 py-2.5 focus-within:border-[#990033] focus-within:border-2 transition-all">
+               <input 
+                 value={formData.roll_no} 
+                 onChange={e => handleInputChange('roll_no', e.target.value)} 
+                 placeholder="Enter Roll Number (e.g. CB.SC.U4...)" 
+                 className="w-full text-sm text-gray-900 outline-none placeholder-gray-400 font-medium"
+               />
+            </div>
+         </div>
+
+         {/* Department Field - Updated Options */}
+         <div className="group">
             <label className="block text-[#990033] text-xs font-medium mb-1 ml-1">Department</label>
             <div className="border border-gray-300 rounded-lg px-3 py-2.5 relative focus-within:border-[#990033] focus-within:border-2 transition-all">
-               <select value={formData.department} onChange={e => handleInputChange('department', e.target.value)} className="w-full text-sm text-gray-900 outline-none appearance-none bg-transparent font-medium bg-white">
-                  <option>Computer Science & Engineering (CSE)</option>
-                  <option>Artificial Intelligence (AIE)</option>
-                  <option>Electronics & Communication (ECE)</option>
-                  <option>Mechanical Engineering (ME)</option>
+               <select 
+                  value={formData.department} 
+                  onChange={e => handleInputChange('department', e.target.value)} 
+                  className="w-full text-sm text-gray-900 outline-none appearance-none bg-transparent font-medium bg-white"
+               >
+                  <option value="" disabled>Select Department</option>
+                  {departments.map((dept) => (
+                    <option key={dept} value={dept}>{dept}</option>
+                  ))}
+                  
+                  {/* Fallback option if DB value isn't in the list */}
+                  {!departments.includes(formData.department) && formData.department && (
+                      <option value={formData.department}>{formData.department}</option>
+                  )}
                </select>
                <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 rotate-90 text-gray-400 pointer-events-none" size={16} />
             </div>
@@ -179,6 +208,7 @@ export default function StudentProfilePage() {
             <label className="block text-[#990033] text-xs font-medium mb-1 ml-1">Year / Batch</label>
             <div className="border border-gray-300 rounded-lg px-3 py-2.5 relative focus-within:border-[#990033] focus-within:border-2 transition-all">
                <select value={formData.batch} onChange={e => handleInputChange('batch', e.target.value)} className="w-full text-sm text-gray-900 outline-none appearance-none bg-transparent font-medium bg-white">
+                  <option value="" disabled>Select Batch</option>
                   <option>3rd Year / 2022-2026</option>
                   <option>2nd Year / 2023-2027</option>
                   <option>4th Year / 2021-2025</option>
@@ -190,7 +220,7 @@ export default function StudentProfilePage() {
          <div className="group">
             <label className="block text-[#990033] text-xs font-medium mb-1 ml-1">Email</label>
             <div className="border border-gray-300 rounded-lg px-3 py-2.5 flex items-center bg-gray-50">
-               <input value={displayEmail} disabled className="w-full text-sm text-gray-900 outline-none bg-transparent font-medium"/>
+               <input value={formData.email} disabled className="w-full text-sm text-gray-600 outline-none bg-transparent font-medium"/>
                <Mail size={18} className="text-gray-400" />
             </div>
          </div>

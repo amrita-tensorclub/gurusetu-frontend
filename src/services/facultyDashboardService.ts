@@ -38,7 +38,6 @@ export interface FacultyProject {
   applicant_count: number;
   interest_count?: number;
   
-  // ✅ ADD THIS LINE if it is missing
   collaboration_type?: string; 
 }
 
@@ -51,6 +50,7 @@ export interface Applicant {
   profile_picture?: string;
   matched_skills?: string[];
   match_score?: string;
+  roll_no?: string; // <--- ADD THIS LINE
 }
 
 export interface OpeningData {
@@ -300,6 +300,11 @@ getProjectShortlisted: async (projectId: string) => {
   getProjectInterests: async (projectId: string): Promise<InterestedFaculty[]> => {
     const { data } = await api.get(`/dashboard/faculty/projects/${projectId}/interests`);
     return data;
+  },
+  // ... inside facultyDashboardService object
+  expressInterest: async (projectId: string) => {
+      const { data } = await api.post(`/dashboard/express-interest/${projectId}`);
+      return data;
   },
   
 };
