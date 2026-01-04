@@ -27,19 +27,22 @@ export interface ProjectStats {
   total_shortlisted: number;
 }
 
+// frontend/src/services/facultyDashboardService.ts
+
 export interface FacultyProject {
   id: string;
   title: string;
   status: string;
-  domain: string;
+  domain?: string;
   posted_date: string;
   applicant_count: number;
-  shortlisted_count: number;
+  interest_count?: number;
   
-  // These are required for the new tabs to work:
+  // ✅ ADD THIS LINE if it is missing
   collaboration_type?: string; 
-  interest_count?: number;     
 }
+
+
 export interface Applicant {
   student_id: string;
   name: string;
@@ -223,9 +226,13 @@ getFacultyHome: async (filter?: string) => {
     return data;
   },
 
-  getCollaborations: async (search?: string): Promise<CollabProject[]> => {
+// Inside src/services/facultyDashboardService.ts
+
+  getCollaborations: async (search?: string, department?: string, collabType?: string): Promise<CollabProject[]> => {
     const params = new URLSearchParams();
     if (search) params.append("search", search);
+    if (department) params.append("department", department);
+    if (collabType) params.append("collab_type", collabType); // Note: Backend expects 'collab_type'
 
     const { data } = await api.get(
       `/dashboard/faculty/collaborations?${params.toString()}`
@@ -266,9 +273,10 @@ uploadImage: async (file: File) => {
     return data;
   },
 getMyProjects: async (): Promise<{ stats: ProjectStats; projects: FacultyProject[] }> => {
-    const { data } = await api.get("/faculty-projects/my-projects");
+    // ✅ NEW URL (Points to dashboard.py where we added the fix)
+    const { data } = await api.get("/dashboard/faculty/projects");
     return data;
-  },
+},
 
 getProjectApplicants: async (projectId: string) => {
     const { data } = await api.get(`/dashboard/faculty/projects/${projectId}/applicants`);

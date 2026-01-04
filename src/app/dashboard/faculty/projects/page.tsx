@@ -11,6 +11,7 @@ export default function MyProjectsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   
+  // Stats state is kept for data integrity but not displayed
   const [stats, setStats] = useState<ProjectStats>({
     active_projects: 0, total_applicants: 0, total_shortlisted: 0
   });
@@ -136,24 +137,8 @@ export default function MyProjectsPage() {
            </div>
         </div>
 
-        {/* STATS (Visible on both tabs) */}
-        <div className="flex gap-3 overflow-x-auto px-4 py-6 scrollbar-hide bg-white border-b border-gray-200">
-            <div className="min-w-[120px] p-3 rounded-xl border-l-4 border-[#8C1515] bg-gray-50">
-                <p className="text-[10px] font-bold text-gray-400 uppercase">Active</p>
-                <p className="text-2xl font-black text-[#8C1515]">{stats.active_projects}</p>
-            </div>
-            <div className="min-w-[120px] p-3 rounded-xl border-l-4 border-[#D4AF37] bg-gray-50">
-                <p className="text-[10px] font-bold text-gray-400 uppercase">Interested</p>
-                <p className="text-2xl font-black text-[#D4AF37]">{stats.total_applicants}</p>
-            </div>
-             <div className="min-w-[120px] p-3 rounded-xl border-l-4 border-green-600 bg-gray-50">
-                <p className="text-[10px] font-bold text-gray-400 uppercase">Shortlisted</p>
-                <p className="text-2xl font-black text-green-600">{stats.total_shortlisted}</p>
-            </div>
-        </div>
-
         {/* TABS MENU */}
-        <div className="px-4 mt-4 mb-2">
+        <div className="px-4 mt-6 mb-2">
             <div className="flex bg-white p-1 rounded-xl shadow-sm border border-gray-200">
                 <button 
                     onClick={() => setActiveTab('student')}
@@ -328,17 +313,17 @@ export default function MyProjectsPage() {
           </div>
         )}
 
-        {/* --- STUDENT PROFILE MODAL (Same as before) --- */}
+        {/* --- STUDENT PROFILE MODAL --- */}
         {viewProfileId && (
             <div className="fixed inset-0 bg-black/60 z-50 flex items-end animate-in fade-in duration-200">
                <div className="bg-white w-full h-[90%] rounded-t-[2.5rem] overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-300 shadow-2xl relative">
-                  
-                  <div className="bg-[#8C1515] p-6 pb-12 relative shrink-0">
+                 
+                 <div className="bg-[#8C1515] p-6 pb-12 relative shrink-0">
                      <button onClick={() => setViewProfileId(null)} className="absolute top-5 right-5 bg-white/20 p-2 rounded-full text-white hover:bg-white/30 transition-colors"><X size={18} /></button>
                      <p className="text-[#D4AF37] font-black text-[10px] uppercase tracking-widest mb-1">Applicant Profile</p>
-                  </div>
+                 </div>
 
-                  <div className="flex-1 overflow-y-auto bg-gray-50 -mt-6 rounded-t-[2rem] px-6 pb-10">
+                 <div className="flex-1 overflow-y-auto bg-gray-50 -mt-6 rounded-t-[2rem] px-6 pb-10">
                      {loadingProfile || !profileData ? (
                         <div className="flex justify-center mt-20"><RefreshCw className="animate-spin text-[#8C1515]" /></div>
                      ) : (
@@ -365,11 +350,9 @@ export default function MyProjectsPage() {
                                    <div><p className="text-[10px] text-gray-400 font-bold uppercase">Phone</p><p className="text-sm font-bold text-gray-800">{profileData.info.phone || "N/A"}</p></div>
                                </div>
                            </div>
-                           {/* Skills & Projects content (as before) */}
-                           {/* ... (reused from your previous working code) ... */}
                         </div>
                      )}
-                  </div>
+                 </div>
                </div>
             </div>
         )}
