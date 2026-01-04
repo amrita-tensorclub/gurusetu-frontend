@@ -80,6 +80,9 @@ export interface StudentListItem {
   batch: string;
   profile_picture?: string;
   skills: string[];
+  
+  // ✅ ADD THIS OPTIONAL FIELD
+  similarity_score?: number; 
 }
 
 export interface RecommendedStudent {
