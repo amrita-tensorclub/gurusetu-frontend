@@ -1,10 +1,11 @@
+// frontend/src/services/api.ts
 import axios from 'axios';
 
 const api = axios.create({
-  // This will now look for the variable in .env.local
-  // If not found, it defaults to localhost (standard for dev environments)
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
-  headers: { 'Content-Type': 'application/json' }
+  baseURL: 'https://gurusetu-backend.onrender.com', // ✅ Must be HTTPS
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
 // Interceptor to add Authorization header
