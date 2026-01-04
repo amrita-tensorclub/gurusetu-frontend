@@ -84,22 +84,26 @@ export default function CollaborationHub() {
     }
   };
 
-  const handleCreateOpening = async (e: React.FormEvent) => {
+const handleCreateOpening = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreating(true);
     try {
         const payload = {
             title: newOpening.title,
             description: newOpening.description,
+            // Split the comma-separated string into an array of strings
             required_skills: newOpening.required_skills.split(',').map(s => s.trim()).filter(s => s),
             expected_duration: newOpening.expected_duration,
             deadline: newOpening.deadline,
             collaboration_type: newOpening.collaboration_type, 
-            target_years: [], 
-            min_cgpa: 0
+            // ✅ These two lines fix the missing/type-mismatch errors
+            target_years: [] as string[], 
+            min_cgpa: "0" 
         };
 
+        // This call will now be error-free
         await facultyDashboardService.postOpening(payload);
+        
         toast.success("Collaboration Posted Successfully!");
         setCreateModalOpen(false);
         setNewOpening({ 
