@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { ChevronLeft, Eye, Trash2, X, CheckCircle, RefreshCw, Users, Calendar, Briefcase, Mail, Phone, GraduationCap } from 'lucide-react';
+import { ChevronLeft, Eye, Trash2, X, CheckCircle, RefreshCw, Users, Calendar, Briefcase, Mail, Phone, GraduationCap, BookOpen, Copy } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { facultyDashboardService, FacultyProject, ProjectStats, Applicant, InterestedFaculty } from '@/services/facultyDashboardService';
 import toast, { Toaster } from 'react-hot-toast';
@@ -11,14 +11,12 @@ export default function MyProjectsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   
-  // Stats state is kept for data integrity but not displayed
+  // Stats state
   const [stats, setStats] = useState<ProjectStats>({
     active_projects: 0, total_applicants: 0, total_shortlisted: 0
   });
 
   const [projects, setProjects] = useState<FacultyProject[]>([]);
-  
-  // --- TABS STATE ---
   const [activeTab, setActiveTab] = useState<'student' | 'collaboration'>('student');
 
   // List Modal State
@@ -50,10 +48,9 @@ export default function MyProjectsPage() {
     }
   };
 
-  // Filter projects based on the active tab
   const displayedProjects = projects.filter(p => {
-    if (activeTab === 'student') return !p.collaboration_type; // No collab type = Student Project
-    return p.collaboration_type; // Has collab type = Collaboration
+    if (activeTab === 'student') return !p.collaboration_type;
+    return p.collaboration_type;
   });
 
   const openListModal = async (project: FacultyProject, mode: 'applicants' | 'shortlisted' | 'interests') => {
@@ -111,16 +108,36 @@ export default function MyProjectsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if(confirm("Delete this opening?")) {
-        try {
-            await facultyDashboardService.deleteOpening(id);
-            toast.success("Opening removed");
-            loadProjects();
-        } catch (err) {
-            toast.error("Delete failed");
-        }
-    }
+  const handleDelete = (id: string) => {
+    toast((t) => (
+      <div className="flex flex-col gap-2">
+        <p className="font-bold text-gray-800 text-sm">Delete this opening?</p>
+        <div className="flex gap-2">
+            <button 
+                onClick={() => { toast.dismiss(t.id); performDelete(id); }}
+                className="bg-red-600 text-white px-3 py-1 rounded text-xs font-bold hover:bg-red-700"
+            >
+                Delete
+            </button>
+            <button 
+                onClick={() => toast.dismiss(t.id)}
+                className="bg-gray-100 text-gray-600 px-3 py-1 rounded text-xs font-bold hover:bg-gray-200"
+            >
+                Cancel
+            </button>
+        </div>
+      </div>
+    ), { duration: 4000 });
+  };
+
+  const performDelete = async (id: string) => {
+      try {
+          await facultyDashboardService.deleteOpening(id);
+          toast.success("Opening removed successfully");
+          loadProjects();
+      } catch (err) {
+          toast.error("Delete failed");
+      }
   };
 
   return (
@@ -181,7 +198,6 @@ export default function MyProjectsPage() {
                    <div className="flex items-center gap-4 text-gray-400 mb-4">
                       <div className="flex items-center gap-1.5"><Calendar size={12} /><span className="text-[10px] font-bold">{proj.posted_date}</span></div>
                       
-                      {/* Conditional Stats Display */}
                       {activeTab === 'student' ? (
                           <div className="flex items-center gap-1.5 text-[#D4AF37]"><Users size={12} /><span className="text-[10px] font-bold">{proj.applicant_count} Applicants</span></div>
                       ) : (
@@ -190,8 +206,6 @@ export default function MyProjectsPage() {
                    </div>
                    
                    <div className="flex gap-2 border-t border-gray-50 pt-3">
-                      
-                      {/* Buttons for STUDENT TAB */}
                       {activeTab === 'student' && (
                         <>
                            <button onClick={() => openListModal(proj, 'applicants')} className="flex-1 flex items-center justify-center gap-2 bg-[#F9F9F9] text-gray-700 py-2.5 rounded-xl text-[10px] font-bold hover:bg-gray-100">
@@ -202,14 +216,11 @@ export default function MyProjectsPage() {
                            </button>
                         </>
                       )}
-
-                      {/* Buttons for COLLABORATION TAB */}
                       {activeTab === 'collaboration' && (
                         <button onClick={() => openListModal(proj, 'interests')} className="flex-1 flex items-center justify-center gap-2 bg-[#FFF9E6] text-[#D4AF37] py-2.5 rounded-xl text-[10px] font-bold hover:bg-yellow-100 border border-yellow-100">
                             <Briefcase size={14} /> View Interested Faculty
                         </button>
                       )}
-
                       <button onClick={() => handleDelete(proj.id)} className="w-10 flex items-center justify-center bg-[#FFF0F0] text-[#8C1515] rounded-xl hover:bg-red-100">
                           <Trash2 size={14} />
                       </button>
@@ -240,7 +251,6 @@ export default function MyProjectsPage() {
                     <div className="flex justify-center mt-10"><RefreshCw className="animate-spin text-gray-300"/></div>
                  ) : (
                     <>
-                        {/* --- STUDENT LIST RENDER --- */}
                         {viewMode !== 'interests' && (
                             studentList.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center h-40 text-gray-400">
@@ -264,8 +274,6 @@ export default function MyProjectsPage() {
                                                     <p className="text-[10px] text-gray-500">{student.roll_no} • {student.department}</p>
                                                 </div>
                                             </div>
-                                            
-                                            {/* Actions for Applicants */}
                                             {viewMode === 'applicants' && (
                                                 <div className="flex gap-2 pt-1 border-t border-gray-50 mt-1">
                                                     <button onClick={(e) => handleStatusAction(e, student.student_id, 'Rejected')} className="flex-1 bg-white border border-red-200 text-red-500 py-2.5 rounded-xl text-[10px] font-black uppercase shadow-sm">Reject</button>
@@ -277,8 +285,6 @@ export default function MyProjectsPage() {
                                 </div>
                             )
                         )}
-
-                        {/* --- FACULTY LIST RENDER --- */}
                         {viewMode === 'interests' && (
                             facultyList.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center h-40 text-gray-400">
@@ -298,9 +304,7 @@ export default function MyProjectsPage() {
                                                     <p className="text-[10px] text-gray-500">{faculty.department}</p>
                                                 </div>
                                             </div>
-                                            <a href={`mailto:${faculty.email}`} className="bg-yellow-50 text-[#D4AF37] p-2 rounded-lg border border-yellow-200 hover:bg-yellow-100">
-                                                <Mail size={16}/>
-                                            </a>
+                                            <a href={`mailto:${faculty.email}`} className="bg-yellow-50 text-[#D4AF37] p-2 rounded-lg border border-yellow-200 hover:bg-yellow-100"><Mail size={16}/></a>
                                         </div>
                                     ))}
                                 </div>
@@ -313,48 +317,106 @@ export default function MyProjectsPage() {
           </div>
         )}
 
-        {/* --- STUDENT PROFILE MODAL --- */}
+        {/* --- STUDENT PROFILE MODAL (REDESIGNED) --- */}
         {viewProfileId && (
-            <div className="fixed inset-0 bg-black/60 z-50 flex items-end animate-in fade-in duration-200">
-               <div className="bg-white w-full h-[90%] rounded-t-[2.5rem] overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-300 shadow-2xl relative">
-                 
-                 <div className="bg-[#8C1515] p-6 pb-12 relative shrink-0">
-                     <button onClick={() => setViewProfileId(null)} className="absolute top-5 right-5 bg-white/20 p-2 rounded-full text-white hover:bg-white/30 transition-colors"><X size={18} /></button>
-                     <p className="text-[#D4AF37] font-black text-[10px] uppercase tracking-widest mb-1">Applicant Profile</p>
-                 </div>
+          <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white w-full h-[90vh] sm:h-[85vh] sm:max-w-xl rounded-t-[2.5rem] sm:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col relative animate-in slide-in-from-bottom duration-300">
+              
+              <button 
+                onClick={() => setViewProfileId(null)} 
+                className="absolute top-6 right-6 p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 transition-colors z-10"
+              >
+                <X size={20} />
+              </button>
 
-                 <div className="flex-1 overflow-y-auto bg-gray-50 -mt-6 rounded-t-[2rem] px-6 pb-10">
-                     {loadingProfile || !profileData ? (
-                        <div className="flex justify-center mt-20"><RefreshCw className="animate-spin text-[#8C1515]" /></div>
-                     ) : (
-                        <div className="space-y-6 mt-0">
-                           <div className="text-center -mt-10 mb-2">
-                              <div className="w-24 h-24 rounded-full border-4 border-white bg-gray-200 shadow-md mx-auto overflow-hidden">
-                                 <img src={profileData.info.profile_picture || "https://avatar.iran.liara.run/public"} className="w-full h-full object-cover"/>
-                              </div>
-                              <h2 className="text-xl font-black text-gray-900 mt-3">{profileData.info.name}</h2>
-                              <p className="text-xs font-bold text-gray-500">{profileData.info.roll_no}</p>
-                           </div>
+              <div className="flex-1 overflow-y-auto p-8 pt-10">
+                {loadingProfile || !profileData ? (
+                    <div className="flex justify-center mt-20"><RefreshCw className="animate-spin text-[#8C1515]" /></div>
+                ) : (
+                  <>
+                    <div className="flex flex-col sm:flex-row items-start gap-5 mb-8">
+                      <div className="w-24 h-24 rounded-full bg-gray-100 border-4 border-white shadow-md overflow-hidden shrink-0">
+                         <img 
+                           src={profileData.info.profile_picture || "https://avatar.iran.liara.run/public/girl"} 
+                           className="w-full h-full object-cover" 
+                           alt="Profile"
+                         />
+                      </div>
+                      <div className="flex-1 w-full">
+                         <div className="flex justify-between items-start">
+                            <div>
+                                <h2 className="text-2xl font-black text-gray-900 leading-none mb-1">{profileData.info.name}</h2>
+                                <p className="text-[#8C1515] font-bold text-sm tracking-wide">{profileData.info.roll_no}</p>
+                            </div>
+                            <span className="hidden sm:inline-block bg-gray-100 text-gray-600 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wide">
+                                {profileData.info.batch || "BATCH 2026"}
+                            </span>
+                         </div>
+                         <p className="text-gray-400 text-xs font-bold mt-2 uppercase tracking-wide">{profileData.info.department}</p>
+                         <span className="sm:hidden inline-block mt-3 bg-gray-100 text-gray-600 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wide">
+                            {profileData.info.batch || "BATCH 2026"}
+                         </span>
+                      </div>
+                    </div>
 
-                           <div className="bg-white p-4 rounded-2xl shadow-sm space-y-3">
-                               <div className="flex items-center gap-3">
-                                   <div className="bg-red-50 p-2 rounded-full text-[#8C1515]"><GraduationCap size={16}/></div>
-                                   <div><p className="text-[10px] text-gray-400 font-bold uppercase">Department</p><p className="text-sm font-bold text-gray-800">{profileData.info.department}</p></div>
-                               </div>
-                               <div className="flex items-center gap-3">
-                                   <div className="bg-red-50 p-2 rounded-full text-[#8C1515]"><Mail size={16}/></div>
-                                   <div><p className="text-[10px] text-gray-400 font-bold uppercase">Email</p><p className="text-sm font-bold text-gray-800 break-all">{profileData.info.email}</p></div>
-                               </div>
-                               <div className="flex items-center gap-3">
-                                   <div className="bg-red-50 p-2 rounded-full text-[#8C1515]"><Phone size={16}/></div>
-                                   <div><p className="text-[10px] text-gray-400 font-bold uppercase">Phone</p><p className="text-sm font-bold text-gray-800">{profileData.info.phone || "N/A"}</p></div>
-                               </div>
-                           </div>
+                    <div className="bg-[#FFF5F5] border border-[#FFE0E0] rounded-xl p-4 flex items-center gap-4 mb-8">
+                        <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#8C1515] shadow-sm">
+                            <Mail size={18} />
                         </div>
-                     )}
-                 </div>
-               </div>
+                        <div className="flex-1 overflow-hidden">
+                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Student Email</p>
+                            <p className="text-sm font-bold text-gray-900 truncate">{profileData.info.email}</p>
+                        </div>
+                        <Copy size={16} className="text-gray-400" />
+                    </div>
+
+                    <div className="pl-4 border-l-4 border-gray-200 mb-8">
+                        <p className="text-sm text-gray-500 italic font-medium">
+                            "{profileData.info.bio || "No bio added."}"
+                        </p>
+                    </div>
+
+                    <div className="mb-8">
+                        <h4 className="text-gray-400 font-bold text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
+                            <BookOpen size={16} /> Skills & Expertise
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                            {profileData.info.skills && profileData.info.skills.length > 0 ? (
+                                profileData.info.skills.map((s: string) => (
+                                    <span key={s} className="bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm">
+                                        {s}
+                                    </span>
+                                ))
+                            ) : (
+                                <p className="text-sm text-gray-400 italic">No skills listed.</p>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="mb-10">
+                        <h4 className="text-gray-400 font-bold text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
+                            <Briefcase size={16} /> Recent Projects
+                        </h4>
+                        {profileData.projects && profileData.projects.length > 0 ? (
+                            <div className="space-y-3">
+                                {profileData.projects.map((proj: any, i: number) => (
+                                    <div key={i} className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                        <h4 className="font-bold text-sm text-gray-900">{proj.title}</h4>
+                                        <p className="text-xs text-gray-500 mt-1">{proj.description}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="border-2 border-dashed border-gray-100 rounded-xl p-8 text-center bg-gray-50/50">
+                                <p className="text-sm text-gray-400 font-medium">No projects added yet.</p>
+                            </div>
+                        )}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
+          </div>
         )}
 
     </div>
