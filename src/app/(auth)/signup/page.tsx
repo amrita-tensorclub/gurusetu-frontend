@@ -8,6 +8,20 @@ import { authService } from '@/services/authService';
 import toast, { Toaster } from 'react-hot-toast';
 import axios from 'axios';
 
+// Department List
+const DEPARTMENTS = [
+  "Computer Science and Engineering (CSE)",
+  "Artificial Intelligence Engineering (AIE)",
+  "Artificial Intelligence and Data Science (AID)",
+  "Integrated M.Sc Data Science",
+  "Electronics and Communication Engineering (ECE)",
+  "Electrical and Electronics Engineering (EEE)",
+  "Computer and Communication Engineering (CCE)",
+  "Mechanical Engineering (ME)",
+  "Mathematics",
+  "Electronics (ELC)"
+];
+
 export default function SignupPage() {
   const router = useRouter();
   const [role, setRole] = useState<'student' | 'faculty'>('student');
@@ -34,19 +48,49 @@ export default function SignupPage() {
     }
   };
 
+  // ✅ UPDATED: Validation Logic
+  const validateForm = () => {
+    const email = formData.email.toLowerCase();
+
+    // 1. Faculty Validation (Removed Employee ID Check)
+    if (role === 'faculty') {
+      if (!email.endsWith('@cb.amrita.edu')) {
+        toast.error("Faculty email must end with @cb.amrita.edu");
+        return false;
+      }
+      // ❌ Removed ID length check
+    }
+
+    // 2. Student Validation
+    if (role === 'student') {
+      if (!email.endsWith('@cb.students.amrita.edu')) {
+        toast.error("Student email must end with @cb.students.amrita.edu");
+        return false;
+      }
+      if (!formData.id_number) {
+        toast.error("Roll Number is required for students");
+        return false;
+      }
+    }
+
+    return true;
+  };
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) return;
+
     setLoading(true);
 
     try {
       let finalImageUrl = "";
 
-      // 1. Upload Photo to Backend (which sends to Cloudinary)
+      // 1. Upload Photo to Backend
       if (selectedFile) {
         const photoFormData = new FormData();
         photoFormData.append('file', selectedFile);
         
-        // Uses your Netlify ENV variable to avoid Mixed Content/Localhost errors
         const uploadRes = await axios.post(
           `${process.env.NEXT_PUBLIC_API_URL}/users/upload-profile-picture`, 
           photoFormData, 
@@ -55,7 +99,7 @@ export default function SignupPage() {
         finalImageUrl = uploadRes.data.url;
       }
 
-      // 2. Register User with Photo URL
+      // 2. Register User
       const payload = {
         name: formData.name,
         email: formData.email,
@@ -63,7 +107,7 @@ export default function SignupPage() {
         role: role,
         department: formData.department,
         roll_no: role === 'student' ? formData.id_number : null,
-        employee_id: role === 'faculty' ? formData.id_number : null,
+        employee_id: null, // ✅ Always null for faculty signup now
         profile_picture: finalImageUrl 
       };
 
@@ -86,7 +130,6 @@ export default function SignupPage() {
   };
 
   return (
-    // ✅ SCROLL FIX: h-screen + overflow-y-auto ensures nothing is ever cut off
     <div className="h-screen bg-white flex flex-col font-sans overflow-y-auto">
       <Toaster position="top-center" />
       
@@ -143,7 +186,7 @@ export default function SignupPage() {
               name="email" 
               type="email" 
               autoComplete="email"
-              placeholder="Email Address" 
+              placeholder={role === 'student' ? "student@cb.students.amrita.edu" : "faculty@cb.amrita.edu"}
               onChange={handleChange} 
               className="w-full border-2 border-[#8C1515] rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-gray-700 outline-none" 
               required 
@@ -179,26 +222,28 @@ export default function SignupPage() {
               required
             >
               <option value="">Select Department</option>
-              <option value="CSE">CSE</option>
-              <option value="AIE">AIE</option>
-              <option value="ECE">ECE</option>
-              <option value="MECH">MECH</option>
+              {DEPARTMENTS.map((dept) => (
+                <option key={dept} value={dept}>{dept}</option>
+              ))}
             </select>
+            <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 rotate-90 text-[#8C1515] pointer-events-none" size={20} />
           </div>
 
-          {/* ID Number */}
-          <div className="relative">
-            <Hash className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8C1515]" size={20} />
-            <input 
-              id="signup-id"
-              name="id_number" 
-              type="text" 
-              placeholder={role === 'student' ? "Roll Number" : "Employee ID"} 
-              onChange={handleChange} 
-              className="w-full border-2 border-[#8C1515] rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-gray-700 outline-none" 
-              required 
-            />
-          </div>
+          {/* ✅ UPDATED: Only Show ID Field for Students */}
+          {role === 'student' && (
+            <div className="relative">
+              <Hash className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8C1515]" size={20} />
+              <input 
+                id="signup-id"
+                name="id_number" 
+                type="text" 
+                placeholder="Roll No (e.g. CB.SC.U4AIE24324)" 
+                onChange={handleChange} 
+                className="w-full border-2 border-[#8C1515] rounded-2xl pl-12 pr-4 py-4 text-sm font-bold text-gray-700 outline-none" 
+                required 
+              />
+            </div>
+          )}
 
           <button type="submit" disabled={loading} className="w-full bg-[#8C1515] text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl mt-4 flex justify-center items-center gap-2">
             {loading ? 'Processing...' : 'Create Account'} <ChevronRight size={16} />
