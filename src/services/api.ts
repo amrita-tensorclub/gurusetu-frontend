@@ -2,11 +2,14 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://127.0.0.1:8000', // ✅ Must be HTTPS
+  // ✅ Change this line to use the environment variable
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000', 
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
+// ... rest of your code
 
 // Interceptor to add Authorization header
 api.interceptors.request.use((config) => {
