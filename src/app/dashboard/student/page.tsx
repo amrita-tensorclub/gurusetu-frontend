@@ -94,13 +94,19 @@ function MenuLink({ icon: Icon, label, active = false, onClick }: { icon: any, l
         {/* --- SIDE MENU DRAWER --- */}
         <div className={`fixed inset-0 z-50 bg-black/50 transition-opacity duration-300 ${isMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} onClick={() => setMenuOpen(false)}>
            <div className={`absolute top-0 left-0 bottom-0 w-[80%] max-w-[300px] bg-white shadow-2xl transition-transform duration-300 transform ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`} onClick={(e) => e.stopPropagation()}>
-              <div className="bg-[#8C1515] p-6 pt-12 pb-8 text-center relative">
-                 <div className="w-24 h-24 rounded-full bg-white mx-auto mb-3 p-1 border-2 border-white/20">
-                    <img src={menuData?.profile_picture || "https://avatar.iran.liara.run/public"} alt="Profile" className="w-full h-full rounded-full object-cover"/>
-                 </div>
-                 <h2 className="text-white font-black text-lg leading-tight mb-1">{menuData?.name}</h2>
-                 <p className="text-white/80 text-xs font-medium">{menuData?.department} | {menuData?.roll_no}</p>
-              </div>
+               {/* ... inside the SIDE MENU DRAWER div ... */}
+               <div className="bg-[#8C1515] p-6 pt-12 pb-8 text-center relative">
+               <div className="w-24 h-24 rounded-full bg-white mx-auto mb-3 p-1 border-2 border-white/20">
+                  {/* ✅ FIX: Check for 'profile_picture' AND 'pic' to ensure image loads */}
+                  <img 
+                     src={menuData?.profile_picture || menuData?.pic || "https://avatar.iran.liara.run/public"} 
+                     alt="Profile" 
+                     className="w-full h-full rounded-full object-cover"
+                  />
+               </div>
+               <h2 className="text-white font-black text-lg leading-tight mb-1">{menuData?.name}</h2>
+               <p className="text-white/80 text-xs font-medium">{menuData?.department} | {menuData?.roll_no}</p>
+               </div>
               <div className="py-2 px-4 space-y-2 mt-2">
                 <MenuLink icon={Home} label="Home" onClick={() => handleNavigation('/dashboard/student')} active />
                 <MenuLink icon={User} label="Profile" onClick={() => handleNavigation('/dashboard/student/profile')} />
