@@ -61,6 +61,7 @@ export interface OpeningData {
     target_years: string[];      // Maps to 'years' in your component
     min_cgpa: string;            // Maps to 'cgpa' in your component
     deadline: string;            // Maps to 'deadline' in your component
+    collaboration_type?: string | null; // ✅ ADDED THIS
 }
 
 export interface WorkItem {
@@ -190,6 +191,17 @@ export interface FacultyProfile {
 
 
 export const facultyDashboardService = {
+
+  // ✅ ADD THIS MISSING FUNCTION
+  uploadProfilePicture: async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    // Uses the generic user upload endpoint (works for both students and faculty)
+    const response = await api.post('/users/upload-profile-picture', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data.url;
+  },
   // ---- Students ----
   getAllStudents: async (search?: string, department?: string, batch?: string): Promise<StudentListItem[]> => {
       const params = new URLSearchParams();
@@ -254,12 +266,12 @@ getFacultyHome: async (filter?: string) => {
     return data;
   },
 
-  // ---- Openings ----
-    async postOpening(data: OpeningData): Promise<any> {
-        const response = await api.post('/faculty/post-opening', data);
-        return response.data;
-    },
-
+// ---- Openings ----
+  async postOpening(data: OpeningData): Promise<any> {
+      // ✅ FIX: Changed URL to match Backend (/dashboard/faculty/opening)
+      const response = await api.post('/dashboard/faculty/opening', data);
+      return response.data;
+  },
 // frontend/src/services/facultyDashboardService.ts
 
 deleteOpening: async (id: string) => {
