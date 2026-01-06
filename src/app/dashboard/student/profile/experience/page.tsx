@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { ChevronLeft, Check, Plus, Trash2, X, Calendar } from 'lucide-react';
+import { ChevronLeft, Check, Plus, Trash2, X, Calendar, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { dashboardService, StudentProfileData, ProjectCreate, PublicationItem } from '@/services/studentDashboardService';
 import toast, { Toaster } from 'react-hot-toast';
@@ -9,14 +9,13 @@ import toast, { Toaster } from 'react-hot-toast';
 export default function StudentExperiencePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false); // ✅ Added saving state
   
-  // We hold the full profile data to ensure we don't lose Name/Bio when saving
   const [fullProfile, setFullProfile] = useState<StudentProfileData>({
     name: "", phone: "", department: "", batch: "", bio: "",
     skills: [], interests: [], projects: [], publications: []
   });
 
-  // Local state for the UI
   const [interests, setInterests] = useState<string[]>([]);
   const [projects, setProjects] = useState<ProjectCreate[]>([]);
   const [publications, setPublications] = useState<PublicationItem[]>([]);
@@ -33,7 +32,7 @@ export default function StudentExperiencePage() {
     title: "", year: new Date().getFullYear().toString(), publisher: "", link: ""
   });
 
-  // --- Load Data ---
+// --- Load Data ---
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -41,13 +40,29 @@ export default function StudentExperiencePage() {
         if(!userStr) { router.push('/login'); return; }
         const uid = JSON.parse(userStr).user_id || JSON.parse(userStr).user?.user_id;
 
-        // Fetch Full Profile via Dashboard Service
         const data = await dashboardService.getStudentFullProfile(uid);
         
         setFullProfile(data);
         setInterests(data.interests || []);
-        setProjects(data.projects || []);
-        setPublications(data.publications || []);
+
+        // ✅ FIX 1: Deduplicate Projects (Explicitly Typed)
+        const rawProjects = (data.projects || []) as ProjectCreate[];
+        const uniqueProjects = rawProjects.filter((proj, index, self) =>
+           index === self.findIndex((p: ProjectCreate) => (
+             p.title === proj.title && p.description === proj.description
+           ))
+        );
+        setProjects(uniqueProjects);
+
+        // ✅ FIX 2: Deduplicate Publications (Explicitly Typed)
+        const rawPubs = (data.publications || []) as PublicationItem[];
+        const uniquePubs = rawPubs.filter((pub, index, self) =>
+           index === self.findIndex((p: PublicationItem) => (
+             p.title === pub.title && p.year === pub.year
+           ))
+        );
+        setPublications(uniquePubs);
+
       } catch (err) {
         console.error("Load error:", err);
       } finally {
@@ -60,8 +75,10 @@ export default function StudentExperiencePage() {
   // --- Save Handler ---
   const handleSave = async (e: React.MouseEvent) => {
     e.preventDefault();
+    if (saving) return; // Prevent double clicks
     
-    // Merge current UI state into the full profile object
+    setSaving(true); // Start loading
+    
     const payload: StudentProfileData = {
         ...fullProfile,
         interests,
@@ -75,10 +92,11 @@ export default function StudentExperiencePage() {
     } catch (err: any) {
         console.error("Save error:", err);
         toast.error("Failed to save.");
+    } finally {
+        setSaving(false); // Stop loading
     }
   };
 
-  // --- Helpers ---
   const addInterest = () => { if(newInterest) { setInterests([...interests, newInterest]); setNewInterest(""); }};
   const removeInterest = (item: string) => setInterests(interests.filter(i => i !== item));
 
@@ -98,10 +116,9 @@ export default function StudentExperiencePage() {
   };
   const removePublication = (idx: number) => setPublications(publications.filter((_, i) => i !== idx));
 
-  if(loading) return <div className="min-h-screen flex items-center justify-center font-bold text-gray-400">Loading...</div>;
+  if(loading) return <div className="min-h-screen flex items-center justify-center font-bold text-gray-400"><Loader2 className="animate-spin" /></div>;
 
   return (
-    // --- CHANGED: Full Screen Mobile Layout ---
     <div className="min-h-screen bg-white font-sans flex flex-col relative pb-32">
       <Toaster position="top-center" />
       
@@ -198,9 +215,10 @@ export default function StudentExperiencePage() {
          <button 
             type="button" 
             onClick={handleSave} 
-            className="w-full bg-[#8C1515] text-white py-4 rounded-full font-black text-sm uppercase tracking-widest shadow-xl active:scale-95 transition-transform flex justify-center items-center gap-2"
+            disabled={saving}
+            className="w-full bg-[#8C1515] text-white py-4 rounded-full font-black text-sm uppercase tracking-widest shadow-xl active:scale-95 transition-transform flex justify-center items-center gap-2 disabled:opacity-50 disabled:scale-100"
          >
-            Save Changes <Check size={18} />
+            {saving ? <Loader2 className="animate-spin" size={18} /> : <>Save Changes <Check size={18} /></>}
          </button>
       </div>
     </div>
