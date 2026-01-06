@@ -42,6 +42,23 @@ export default function LoginPage() {
   // --- LOGIN LOGIC ---
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // ✅ 1. STRICT FRONTEND VALIDATION
+    const emailLower = email.toLowerCase();
+
+    if (role === 'faculty') {
+        // ✅ UPDATED: Now checks for @cb.amrita.edu
+        if (!emailLower.endsWith('@cb.amrita.edu')) {
+            toast.error("Faculty login requires an @cb.amrita.edu email address.");
+            return;
+        }
+    } else if (role === 'student') {
+        if (!emailLower.endsWith('@cb.students.amrita.edu')) {
+            toast.error("Student login requires an @cb.students.amrita.edu email address.");
+            return;
+        }
+    }
+
     setLoading(true);
 
     try {
@@ -49,6 +66,14 @@ export default function LoginPage() {
       localStorage.removeItem('token');
 
       const response = await authService.login(email, password);
+
+      // ✅ 2. STRICT BACKEND ROLE CHECK
+      // The backend MUST return the 'role' in the response for this to work.
+      if (response.role && response.role.toLowerCase() !== role) {
+          toast.error(`Access Denied: You are registered as a ${response.role}, but tried logging in as a ${role}.`);
+          setLoading(false);
+          return;
+      }
 
       let userId = response.user_id; 
       if (!userId && response.access_token) {
@@ -62,7 +87,7 @@ export default function LoginPage() {
 
       const userData = {
           user_id: userId,
-          role: role,
+          role: role, // Use the verified role
           access_token: response.access_token
       };
       
@@ -164,7 +189,8 @@ export default function LoginPage() {
             <div className="relative">
               <input 
                 type="email" 
-                placeholder="University Email"
+                // ✅ UPDATED Placeholder
+                placeholder={role === 'student' ? "student@cb.students.amrita.edu" : "faculty@cb.amrita.edu"}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full border-2 border-[#8C1515] rounded-2xl p-4 text-sm font-bold text-gray-700 outline-none focus:bg-gray-50 transition-colors"
