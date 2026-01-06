@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-// ✅ FIXED: Added 'LogOut' to imports to prevent runtime error
-import { Menu, Bell, ChevronRight, X, Folder, Mail, BookOpen, Briefcase, MapPin, Copy, Send, Calendar, LogOut } from 'lucide-react'; 
+import { Menu, Bell, ChevronRight, X, Folder, Mail, BookOpen, Briefcase, LogOut, Send, Calendar, Copy } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { 
   facultyDashboardService, 
@@ -28,7 +27,10 @@ export default function FacultyDashboard() {
   const [studentProfile, setStudentProfile] = useState<StudentPublicProfile | null>(null);
   const [selectedFacultyId, setSelectedFacultyId] = useState<string | null>(null);
   const [facultyProfile, setFacultyProfile] = useState<FacultyProfile | null>(null);
+  
+  // Shortlist State
   const [shortlistStudentId, setShortlistStudentId] = useState<string | null>(null);
+  const [activeOpenings, setActiveOpenings] = useState<any[]>([]); // Stores ONLY student openings
   
   // Collaboration Modal State
   const [selectedCollab, setSelectedCollab] = useState<any | null>(null);
@@ -43,8 +45,28 @@ export default function FacultyDashboard() {
     try {
       const res = await facultyDashboardService.getFacultyHome(filter);
       const menuRes = await facultyDashboardService.getFacultyMenu();
+      
+      // ✅ STRICT FILTERING for Shortlist Modal
+      const projectsRes = await facultyDashboardService.getMyProjects();
+      
+      console.log("RAW PROJECTS:", projectsRes.projects); // DEBUG: Check console
+
+      const activeOps = projectsRes.projects.filter(p => {
+          // 1. Must be Active
+          const isActive = p.status === 'Active';
+          
+          // 2. Must NOT be a collaboration
+          // We check specifically if collaboration_type is falsy (null, undefined, or "")
+          const isNotCollab = !p.collaboration_type; 
+
+          return isActive && isNotCollab;
+      });
+
+      console.log("FILTERED STUDENT OPENINGS:", activeOps); // DEBUG: Check console
+
       setData(res);
       setMenuData(menuRes);
+      setActiveOpenings(activeOps); 
     } catch (err) {
       console.error(err);
     } finally {
@@ -108,17 +130,6 @@ export default function FacultyDashboard() {
     }
   };
 
-  const openFacultyProfile = async (id: string) => {
-    setSelectedFacultyId(id);
-    setFacultyProfile(null);
-    try {
-      const profile = await facultyDashboardService.getFacultyProfile(id);
-      setFacultyProfile(profile);
-    } catch (err) {
-      toast.error("Could not load faculty profile");
-    }
-  };
-
   if (loading && !data) return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center text-xs font-bold text-gray-500">
       Loading Dashboard...
@@ -133,11 +144,15 @@ export default function FacultyDashboard() {
         <div className={`fixed inset-0 z-50 bg-black/50 transition-opacity duration-300 ${isMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} onClick={() => setMenuOpen(false)}>
            <div className={`absolute top-0 left-0 bottom-0 w-[80%] max-w-[300px] bg-white shadow-2xl transition-transform duration-300 transform ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`} onClick={(e) => e.stopPropagation()}>
               <div className="bg-[#8C1515] p-6 pt-12 pb-8 text-center relative">
-                 <div className="w-24 h-24 rounded-full bg-white mx-auto mb-3 p-1 border-2 border-white/20">
-                    <img src={menuData?.profile_picture || "https://avatar.iran.liara.run/public/boy"} alt="Profile" className="w-full h-full rounded-full object-cover"/>
-                 </div>
-                 <h2 className="text-white font-black text-lg leading-tight mb-1">{menuData?.name}</h2>
-                 <p className="text-white/80 text-xs font-medium">{menuData?.department}</p>
+                <div className="w-24 h-24 rounded-full bg-white mx-auto mb-3 p-1 border-2 border-white/20">
+                  <img 
+                    src={menuData?.profile_picture || (menuData as any)?.pic || "https://avatar.iran.liara.run/public/boy"} 
+                    alt="Profile" 
+                    className="w-full h-full rounded-full object-cover"
+                  />
+                </div>
+                <h2 className="text-white font-black text-lg leading-tight mb-1">{menuData?.name}</h2>
+                <p className="text-white/80 text-xs font-medium">{menuData?.department}</p>
               </div>
               <div className="py-2 px-4 space-y-2 mt-2">
                  {menuData?.menu_items.map((item, idx) => (
@@ -254,7 +269,7 @@ export default function FacultyDashboard() {
            </div>
         </div>
 
-        {/* --- MODALS --- */}
+        {/* --- SHORTLIST MODAL --- */}
         {shortlistStudentId && (
            <div className="fixed inset-0 bg-black/50 z-50 flex items-end animate-in fade-in duration-200">
               <div className="bg-white w-full h-[60%] rounded-t-[2.5rem] p-6 flex flex-col animate-in slide-in-from-bottom duration-300 shadow-2xl">
@@ -266,23 +281,32 @@ export default function FacultyDashboard() {
                     <button onClick={() => setShortlistStudentId(null)} className="bg-gray-100 p-2 rounded-full text-gray-500"><X size={20} /></button>
                  </div>
                  <div className="flex-1 overflow-y-auto space-y-3">
-                    {data?.active_openings.map((op) => (
-                       <button key={op.id} onClick={() => confirmShortlist(op.id)} className="w-full text-left bg-gray-50 p-4 rounded-xl border border-gray-200 hover:border-[#8C1515] transition-all">
-                          <h4 className="font-bold text-sm text-gray-800">{op.title}</h4>
-                          <p className="text-[10px] text-gray-400 font-bold mt-1">Click to select</p>
-                       </button>
-                    ))}
+                    {/* ✅ UPDATED: Use filtered activeOpenings here */}
+                    {activeOpenings.length > 0 ? (
+                        activeOpenings.map((op) => (
+                           <button key={op.id} onClick={() => confirmShortlist(op.id)} className="w-full text-left bg-gray-50 p-4 rounded-xl border border-gray-200 hover:border-[#8C1515] transition-all">
+                              <h4 className="font-bold text-sm text-gray-800">{op.title}</h4>
+                              {/* DEBUG VISUAL: This helps you identify what the system thinks this project is */}
+                              <p className="text-[10px] text-gray-400 font-bold mt-1">
+                                {op.collaboration_type ? `[${op.collaboration_type}]` : "(Student Project)"}
+                              </p>
+                           </button>
+                        ))
+                    ) : (
+                        <div className="text-center py-10">
+                            <p className="text-gray-400 text-sm font-bold">No active student openings found.</p>
+                            <button onClick={() => router.push('/dashboard/faculty/profile/research')} className="text-[#8C1515] text-xs font-black underline mt-2">Create One Now</button>
+                        </div>
+                    )}
                  </div>
               </div>
            </div>
         )}
 
-        {/* --- COLLABORATION DETAILS MODAL (MATCHING STUDENT PROFILE DESIGN) --- */}
+        {/* --- COLLABORATION DETAILS MODAL --- */}
         {selectedCollab && (
             <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
                 <div className="bg-white w-full h-[90vh] sm:h-[85vh] sm:max-w-xl rounded-t-[2.5rem] sm:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col relative animate-in slide-in-from-bottom duration-300">
-                    
-                    {/* Close Button */}
                     <button 
                         onClick={() => setSelectedCollab(null)} 
                         className="absolute top-6 right-6 p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 transition-colors z-10"
@@ -291,8 +315,6 @@ export default function FacultyDashboard() {
                     </button>
 
                     <div className="flex-1 overflow-y-auto p-8 pt-10">
-                        
-                        {/* Header: Faculty Info */}
                         <div className="flex flex-col sm:flex-row items-start gap-5 mb-8">
                             <div className="w-24 h-24 rounded-full bg-gray-100 border-4 border-white shadow-md overflow-hidden shrink-0">
                                 <img src={selectedCollab.faculty_pic || "https://avatar.iran.liara.run/public/boy"} className="w-full h-full object-cover" alt="Profile"/>
@@ -310,20 +332,17 @@ export default function FacultyDashboard() {
                             </div>
                         </div>
 
-                        {/* Project Title */}
                         <div className="mb-6">
                             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Project Title</p>
                             <h3 className="text-lg font-black text-gray-900 leading-tight">{selectedCollab.project_title}</h3>
                         </div>
 
-                        {/* Description Box */}
                         <div className="pl-4 border-l-4 border-gray-200 mb-8">
                             <p className="text-sm text-gray-500 italic font-medium">
                                 "{selectedCollab.description || "No detailed description provided for this project."}"
                             </p>
                         </div>
 
-                        {/* Skills/Topics */}
                         {selectedCollab.skills && selectedCollab.skills.length > 0 && (
                             <div className="mb-8">
                                 <h4 className="text-gray-400 font-bold text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
@@ -339,7 +358,6 @@ export default function FacultyDashboard() {
                             </div>
                         )}
 
-                        {/* Deadline */}
                         <div className="bg-orange-50 p-4 rounded-xl border border-orange-100 flex items-center gap-3 mb-20">
                             <Calendar className="text-orange-500" size={20} />
                             <div>
@@ -347,10 +365,8 @@ export default function FacultyDashboard() {
                                 <p className="text-xs font-black text-gray-800">{selectedCollab.deadline || "Open until filled"}</p>
                             </div>
                         </div>
-
                     </div>
 
-                    {/* Footer Action */}
                     <div className="p-6 border-t border-gray-100 bg-white absolute bottom-0 left-0 right-0">
                        <button 
                           onClick={() => handleExpressInterest(selectedCollab.project_id || selectedCollab.id)}
@@ -360,7 +376,6 @@ export default function FacultyDashboard() {
                           {expressingInterest ? "Sending..." : "Express Interest"} <Send size={16}/>
                        </button>
                     </div>
-
                 </div>
             </div>
         )}
@@ -375,18 +390,18 @@ export default function FacultyDashboard() {
                   <>
                     <div className="flex flex-col sm:flex-row items-start gap-5 mb-8">
                       <div className="w-24 h-24 rounded-full bg-gray-100 border-4 border-white shadow-md overflow-hidden shrink-0">
-                         <img src={studentProfile.info.profile_picture || "https://avatar.iran.liara.run/public/girl"} className="w-full h-full object-cover" alt="Profile"/>
+                          <img src={studentProfile.info.profile_picture || "https://avatar.iran.liara.run/public/girl"} className="w-full h-full object-cover" alt="Profile"/>
                       </div>
                       <div className="flex-1 w-full">
-                         <div className="flex justify-between items-start">
+                          <div className="flex justify-between items-start">
                             <div>
                                 <h2 className="text-2xl font-black text-gray-900 leading-none mb-1">{studentProfile.info.name}</h2>
                                 <p className="text-[#8C1515] font-bold text-sm tracking-wide">{studentProfile.info.roll_no}</p>
                             </div>
                             <span className="hidden sm:inline-block bg-gray-100 text-gray-600 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wide">{studentProfile.info.batch || "BATCH 2026"}</span>
-                         </div>
-                         <p className="text-gray-400 text-xs font-bold mt-2 uppercase tracking-wide">{studentProfile.info.department}</p>
-                         <span className="sm:hidden inline-block mt-3 bg-gray-100 text-gray-600 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wide">{studentProfile.info.batch || "BATCH 2026"}</span>
+                          </div>
+                          <p className="text-gray-400 text-xs font-bold mt-2 uppercase tracking-wide">{studentProfile.info.department}</p>
+                          <span className="sm:hidden inline-block mt-3 bg-gray-100 text-gray-600 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wide">{studentProfile.info.batch || "BATCH 2026"}</span>
                       </div>
                     </div>
                     <div className="bg-[#FFF5F5] border border-[#FFE0E0] rounded-xl p-4 flex items-center gap-4 mb-8">
@@ -412,8 +427,8 @@ export default function FacultyDashboard() {
                             <div className="space-y-3">
                                 {studentProfile.projects.map((proj, i) => (
                                     <div key={i} className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                        <h4 className="font-bold text-sm text-gray-900">{proj.title}</h4>
-                                        <p className="text-xs text-gray-500 mt-1">{proj.description}</p>
+                                            <h4 className="font-bold text-sm text-gray-900">{proj.title}</h4>
+                                            <p className="text-xs text-gray-500 mt-1">{proj.description}</p>
                                     </div>
                                 ))}
                             </div>
