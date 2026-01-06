@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://gurusetu-backend.onrender.com', // ✅ Must be HTTPS
+  baseURL: 'http://127.0.0.1:8000', // ✅ Must be HTTPS
   headers: {
     'Content-Type': 'application/json',
   },
