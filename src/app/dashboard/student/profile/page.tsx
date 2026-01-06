@@ -30,7 +30,7 @@ export default function StudentProfilePage() {
     publications: []
   });
 
-  useEffect(() => {
+useEffect(() => {
     const loadProfile = async () => {
       try {
         const userStr = localStorage.getItem("user");
@@ -39,8 +39,10 @@ export default function StudentProfilePage() {
         const u = JSON.parse(userStr);
         const uid = u.user_id || u.user?.user_id;
         
+        // 1. Fetch REAL data
         const data = await dashboardService.getStudentFullProfile(uid);
         
+        // 2. Set Data (With Image Fix)
         setFormData({
             name: data.name || "",
             roll_no: data.roll_no || u.roll_no || "",
@@ -49,7 +51,10 @@ export default function StudentProfilePage() {
             department: data.department || "",
             batch: data.batch || "",
             bio: data.bio || "",
-            profile_picture: data.profile_picture || "",
+            
+            // ✅ THE FIX: Check for 'profile_picture' OR 'pic'
+            profile_picture: data.profile_picture || (data as any).pic || "", 
+            
             skills: data.skills || [],
             interests: data.interests || [],
             projects: data.projects || [],
@@ -204,18 +209,23 @@ export default function StudentProfilePage() {
             </div>
          </div>
 
-         <div className="group">
-            <label className="block text-[#990033] text-xs font-medium mb-1 ml-1">Year / Batch</label>
-            <div className="border border-gray-300 rounded-lg px-3 py-2.5 relative focus-within:border-[#990033] focus-within:border-2 transition-all">
-               <select value={formData.batch} onChange={e => handleInputChange('batch', e.target.value)} className="w-full text-sm text-gray-900 outline-none appearance-none bg-transparent font-medium bg-white">
-                  <option value="" disabled>Select Batch</option>
-                  <option>3rd Year / 2022-2026</option>
-                  <option>2nd Year / 2023-2027</option>
-                  <option>4th Year / 2021-2025</option>
-               </select>
-               <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 rotate-90 text-gray-400 pointer-events-none" size={16} />
-            </div>
-         </div>
+            <div className="group">
+                        <label className="block text-[#990033] text-xs font-medium mb-1 ml-1">Year</label>
+                        <div className="border border-gray-300 rounded-lg px-3 py-2.5 relative focus-within:border-[#990033] focus-within:border-2 transition-all">
+                           <select 
+                           value={formData.batch} 
+                           onChange={e => handleInputChange('batch', e.target.value)} 
+                           className="w-full text-sm text-gray-900 outline-none appearance-none bg-transparent font-medium bg-white"
+                           >
+                              <option value="" disabled>Select Year</option>
+                              <option value="1st Year">1st Year</option>
+                              <option value="2nd Year">2nd Year</option>
+                              <option value="3rd Year">3rd Year</option>
+                              <option value="4th Year">4th Year</option>
+                           </select>
+                           <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 rotate-90 text-gray-400 pointer-events-none" size={16} />
+                        </div>
+                     </div>
 
          <div className="group">
             <label className="block text-[#990033] text-xs font-medium mb-1 ml-1">Email</label>
@@ -235,9 +245,9 @@ export default function StudentProfilePage() {
          <div className="group">
             <label className="block text-[#990033] text-xs font-medium mb-1 ml-1">Bio / About</label>
             <div className="border border-gray-300 rounded-lg px-3 py-2.5 focus-within:border-[#990033] focus-within:border-2 transition-all">
-               <textarea value={formData.bio} onChange={e => handleInputChange('bio', e.target.value)} maxLength={100} rows={2} placeholder="Write a brief bio (max 100 characters)" className="w-full text-sm text-gray-900 outline-none placeholder-gray-400 resize-none font-medium"/>
+               <textarea value={formData.bio} onChange={e => handleInputChange('bio', e.target.value)} maxLength={500} rows={2} placeholder="Write a brief bio (max 100 characters)" className="w-full text-sm text-gray-900 outline-none placeholder-gray-400 resize-none font-medium"/>
             </div>
-            <div className="text-right text-xs text-gray-400 mt-1">{formData.bio?.length || 0}/100</div>
+            <div className="text-right text-xs text-gray-400 mt-1">{formData.bio?.length || 0}/500</div>
          </div>
       </div>
 
