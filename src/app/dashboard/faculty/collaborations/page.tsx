@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { ChevronLeft, Filter, Search, Bookmark, RefreshCw, X, MapPin, Mail, Calendar, Plus, BookOpen, Target, Clock, Users, Briefcase } from 'lucide-react';
+import { ChevronLeft, Filter, Search, RefreshCw, X, MapPin, Mail, Calendar, Plus, BookOpen, Target, Clock, Users, Briefcase, Network } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { facultyDashboardService, CollabProject, FacultyProfile } from '@/services/facultyDashboardService';
 import { notificationService } from '@/services/notificationService';
@@ -32,12 +32,11 @@ export default function CollaborationHub() {
   // --- Load Data ---
   useEffect(() => {
     loadProjects();
-  }, [search]); // Auto-reload on search, filters are applied manually via button
+  }, [search]); 
 
   const loadProjects = async () => {
     setLoading(true);
     try {
-      // ✅ FIX: Pass the selected filters to the service
       const data = await facultyDashboardService.getCollaborations(search, selectedDept, selectedType);
       setProjects(data);
     } catch (err) {
@@ -58,8 +57,8 @@ export default function CollaborationHub() {
     setSelectedDept('');
     setSelectedType('');
     setIsFilterOpen(false);
-    // Reload with empty filters
-    facultyDashboardService.getCollaborations(search, '', '').then(setProjects);
+    setSearch('');
+    facultyDashboardService.getCollaborations('', '', '').then(setProjects);
     toast.success("Filters cleared");
   };
 
@@ -84,24 +83,21 @@ export default function CollaborationHub() {
     }
   };
 
-const handleCreateOpening = async (e: React.FormEvent) => {
+  const handleCreateOpening = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreating(true);
     try {
         const payload = {
             title: newOpening.title,
             description: newOpening.description,
-            // Split the comma-separated string into an array of strings
             required_skills: newOpening.required_skills.split(',').map(s => s.trim()).filter(s => s),
             expected_duration: newOpening.expected_duration,
             deadline: newOpening.deadline,
             collaboration_type: newOpening.collaboration_type, 
-            // ✅ These two lines fix the missing/type-mismatch errors
             target_years: [] as string[], 
             min_cgpa: "0" 
         };
 
-        // This call will now be error-free
         await facultyDashboardService.postOpening(payload);
         
         toast.success("Collaboration Posted Successfully!");
@@ -176,23 +172,34 @@ const handleCreateOpening = async (e: React.FormEvent) => {
            {projects.map((proj, idx) => (
              <div key={idx} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative group hover:border-[#8C1515]/30 transition-colors">
                 
-                <div 
-                  onClick={() => openProfile(proj.faculty_id)} 
-                  className="flex items-center gap-3 mb-4 cursor-pointer"
-                >
-                   <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden ring-2 ring-gray-100 group-hover:ring-[#8C1515] transition-all">
-                      <img src={proj.faculty_pic || "https://avatar.iran.liara.run/public/boy"} className="w-full h-full object-cover" />
-                   </div>
-                   <div>
-                       <p className="text-sm font-bold text-gray-900 group-hover:text-[#8C1515] transition-colors">{proj.faculty_name}</p>
-                       <p className="text-[10px] text-gray-500 font-bold uppercase">{proj.department}</p>
-                   </div>
+                {/* --- HEADER: FACULTY + TAG (FIXED SECTION) --- */}
+                <div className="flex justify-between items-start mb-3">
+                    <div 
+                        onClick={() => openProfile(proj.faculty_id)} 
+                        className="flex items-center gap-3 cursor-pointer"
+                    >
+                        <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden ring-2 ring-gray-100 group-hover:ring-[#8C1515] transition-all">
+                            <img src={proj.faculty_pic || "https://avatar.iran.liara.run/public/boy"} className="w-full h-full object-cover" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold text-gray-900 group-hover:text-[#8C1515] transition-colors">{proj.faculty_name}</p>
+                            <p className="text-[10px] text-gray-500 font-bold uppercase">{proj.department}</p>
+                        </div>
+                    </div>
+                    
+                    {/* ✅ TAG DISPLAYED HERE (TOP RIGHT) */}
+                    <span className="bg-[#FFF9E6] text-[#D4AF37] border border-[#D4AF37]/30 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-wide flex items-center gap-1">
+                        <Network size={10} />
+                        {proj.collaboration_type || "Collaboration"}
+                    </span>
                 </div>
 
                 <div className="mb-3">
                     <h3 className="text-[#8C1515] font-black text-lg leading-tight mb-2">
                     {proj.title}
                     </h3>
+                    
+                    {/* Skills/Tags */}
                     <div className="flex gap-1.5 flex-wrap">
                         {(proj.tags || []).map(tag => (
                             <span key={tag} className="bg-gray-50 text-gray-600 px-2 py-1 rounded-md text-[9px] font-bold border border-gray-200">
@@ -206,15 +213,12 @@ const handleCreateOpening = async (e: React.FormEvent) => {
                    {proj.description}
                 </p>
 
-                <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-50">
-                   <span className="bg-[#FFF9E6] text-[#D4AF37] border border-[#D4AF37]/30 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wide flex items-center gap-1">
-                      <Users size={12} /> {proj.collaboration_type}
-                   </span>
+                <div className="flex items-center justify-end pt-3 border-t border-gray-50">
                    <button 
                     onClick={() => handleInterest(proj.project_id)}
-                    className="bg-[#8C1515] text-white px-4 py-2 rounded-lg font-bold text-[10px] uppercase shadow-md active:scale-95 transition-transform"
+                    className="bg-[#8C1515] text-white px-4 py-2 rounded-lg font-bold text-[10px] uppercase shadow-md active:scale-95 transition-transform flex items-center gap-2"
                    >
-                    Express Interest
+                    Express Interest <Users size={12} /> 
                    </button>
                 </div>
              </div>
@@ -230,7 +234,7 @@ const handleCreateOpening = async (e: React.FormEvent) => {
             <Plus size={28} strokeWidth={3} />
         </button>
 
-        {/* --- POST COLLABORATION MODAL (Keep as is) --- */}
+        {/* --- POST COLLABORATION MODAL --- */}
         {isCreateModalOpen && (
             <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
                 <div className="bg-white w-full h-[85%] sm:h-auto sm:max-h-[85vh] sm:max-w-lg rounded-t-[2rem] sm:rounded-3xl flex flex-col animate-in slide-in-from-bottom duration-300">
@@ -244,18 +248,22 @@ const handleCreateOpening = async (e: React.FormEvent) => {
                                 <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-2"><BookOpen size={14}/> Research Title</label>
                                 <input required value={newOpening.title} onChange={(e) => setNewOpening({...newOpening, title: e.target.value})} className="w-full border-b-2 border-gray-200 py-2 text-sm font-bold text-gray-800 focus:border-[#8C1515] outline-none" placeholder="e.g. AI for Healthcare" />
                             </div>
+                            
+                            {/* Collaboration Type Selector */}
                             <div className="space-y-3">
                                 <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-2"><Users size={14}/> Collaboration Type</label>
                                 <div className="flex gap-2 flex-wrap">
-                                    {['Seeking Co-PI', 'Joint Research', 'Mentorship', 'Grant Proposal'].map(type => (
+                                    {['Joint Research', 'Seeking Co-PI', 'Mentorship', 'Grant Proposal'].map(type => (
                                         <button key={type} type="button" onClick={() => setNewOpening({...newOpening, collaboration_type: type})} className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${newOpening.collaboration_type === type ? 'bg-[#8C1515] text-white border-[#8C1515]' : 'bg-white text-gray-600 border-gray-200'}`}>{type}</button>
                                     ))}
                                 </div>
                             </div>
+
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-2"><Target size={14}/> Scope of Work</label>
                                 <textarea required rows={4} value={newOpening.description} onChange={(e) => setNewOpening({...newOpening, description: e.target.value})} className="w-full bg-gray-50 rounded-xl p-4 text-sm font-medium text-gray-700 outline-none resize-none" placeholder="Describe goals..." />
                             </div>
+                            
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-2"><Calendar size={14}/> Valid Until</label>
@@ -266,9 +274,18 @@ const handleCreateOpening = async (e: React.FormEvent) => {
                                     <div className="bg-gray-50 rounded-xl px-3 py-3"><input value={newOpening.expected_duration} onChange={(e) => setNewOpening({...newOpening, expected_duration: e.target.value})} className="w-full bg-transparent text-sm font-bold text-gray-800 outline-none" placeholder="e.g. 6 Months" /></div>
                                 </div>
                             </div>
+                            
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-2"><Briefcase size={14}/> Expertise Required</label>
-                                <div className="bg-gray-50 rounded-xl px-4 py-3"><input value={newOpening.required_skills} onChange={(e) => setNewOpening({...newOpening, required_skills: e.target.value})} className="w-full bg-transparent text-sm font-medium text-gray-800 outline-none" placeholder="IoT, ML..." /></div>
+                                <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-2"><Briefcase size={14}/> Expertise Required (Tags)</label>
+                                <div className="bg-gray-50 rounded-xl px-4 py-3">
+                                    <input 
+                                        value={newOpening.required_skills} 
+                                        onChange={(e) => setNewOpening({...newOpening, required_skills: e.target.value})} 
+                                        className="w-full bg-transparent text-sm font-medium text-gray-800 outline-none" 
+                                        placeholder="IoT, ML, Data Science..." 
+                                    />
+                                </div>
+                                <p className="text-[10px] text-gray-400">Separate with commas (e.g. AI, Robotics)</p>
                             </div>
                         </form>
                     </div>
@@ -279,7 +296,7 @@ const handleCreateOpening = async (e: React.FormEvent) => {
             </div>
         )}
 
-        {/* --- IMPROVED FILTER MODAL --- */}
+        {/* --- FILTER MODAL (Same as before) --- */}
         {isFilterOpen && (
            <div className="fixed inset-0 bg-black/60 z-50 flex items-end animate-in fade-in duration-200">
               <div className="bg-white w-full rounded-t-[2rem] p-6 animate-in slide-in-from-bottom duration-300">
@@ -289,66 +306,33 @@ const handleCreateOpening = async (e: React.FormEvent) => {
                  </div>
                  
                  <div className="space-y-6">
-                    {/* Collaboration Type Filter */}
                     <div>
                        <label className="text-xs font-bold text-gray-400 uppercase mb-3 block tracking-wider">Collaboration Type</label>
                        <div className="flex flex-wrap gap-2">
                           {['Joint Research', 'Seeking Co-PI', 'Mentorship', 'Grant Proposal'].map(type => (
-                             <button 
-                                key={type}
-                                onClick={() => setSelectedType(selectedType === type ? '' : type)}
-                                className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all border ${
-                                    selectedType === type 
-                                    ? 'bg-[#FFF9E6] text-[#D4AF37] border-[#D4AF37] shadow-sm' 
-                                    : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-                                }`}
-                             >
-                                {type}
-                             </button>
+                             <button key={type} onClick={() => setSelectedType(selectedType === type ? '' : type)} className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all border ${selectedType === type ? 'bg-[#FFF9E6] text-[#D4AF37] border-[#D4AF37] shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>{type}</button>
                           ))}
                        </div>
                     </div>
-
-                    {/* Department Filter */}
                     <div>
                        <label className="text-xs font-bold text-gray-400 uppercase mb-3 block tracking-wider">Department</label>
                        <div className="flex flex-wrap gap-2">
                           {['CSE', 'ECE', 'ME', 'Civil', 'AI', 'EEE'].map(dept => (
-                             <button 
-                                key={dept}
-                                onClick={() => setSelectedDept(selectedDept === dept ? '' : dept)}
-                                className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all border ${
-                                    selectedDept === dept 
-                                    ? 'bg-[#FFF0F0] text-[#8C1515] border-[#8C1515] shadow-sm' 
-                                    : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-                                }`}
-                             >
-                                {dept}
-                             </button>
+                             <button key={dept} onClick={() => setSelectedDept(selectedDept === dept ? '' : dept)} className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all border ${selectedDept === dept ? 'bg-[#FFF0F0] text-[#8C1515] border-[#8C1515] shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>{dept}</button>
                           ))}
                        </div>
                     </div>
                  </div>
 
                  <div className="flex gap-3 mt-10">
-                    <button 
-                       onClick={clearFilters}
-                       className="flex-1 bg-gray-100 text-gray-600 py-3.5 rounded-xl font-black text-xs uppercase hover:bg-gray-200 transition-colors"
-                    >
-                       Clear
-                    </button>
-                    <button 
-                       onClick={applyFilters}
-                       className="flex-[2] bg-[#8C1515] text-white py-3.5 rounded-xl font-black text-xs uppercase shadow-lg hover:bg-[#7a1212] transition-colors"
-                    >
-                       Apply Filters
-                    </button>
+                    <button onClick={clearFilters} className="flex-1 bg-gray-100 text-gray-600 py-3.5 rounded-xl font-black text-xs uppercase hover:bg-gray-200 transition-colors">Clear</button>
+                    <button onClick={applyFilters} className="flex-[2] bg-[#8C1515] text-white py-3.5 rounded-xl font-black text-xs uppercase shadow-lg hover:bg-[#7a1212] transition-colors">Apply Filters</button>
                  </div>
               </div>
            </div>
         )}
 
-        {/* --- FACULTY PROFILE POPUP (Keep as is) --- */}
+        {/* --- FACULTY PROFILE POPUP (Same as before) --- */}
         {selectedFacultyId && (
           <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
               <div className="bg-white w-full max-w-md max-h-[90vh] rounded-3xl overflow-hidden flex flex-col shadow-2xl relative animate-in zoom-in-95 duration-200">
@@ -364,13 +348,11 @@ const handleCreateOpening = async (e: React.FormEvent) => {
                         <div className="text-center">
                            <h2 className="text-xl font-black text-gray-900">{profileData.info.name}</h2>
                            <p className="text-xs font-bold text-[#8C1515] mt-1 uppercase tracking-wide">{profileData.info.designation} • {profileData.info.department}</p>
-                           
                            <div className="flex justify-center flex-wrap gap-2 mt-4 mb-6">
                               {profileData.info.interests?.map(int => (
                                  <span key={int} className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-[10px] font-bold">{int}</span>
                               ))}
                            </div>
-
                            <div className="space-y-3 text-left">
                               <div className="bg-gray-50 p-4 rounded-xl flex items-center gap-3">
                                  <div className="bg-white p-2 rounded-full text-[#8C1515] shadow-sm"><Mail size={16}/></div>
