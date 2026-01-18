@@ -1,153 +1,144 @@
-# Gurusetu Frontend
 
-## Overview
-This is the frontend application for the Gurusetu platform, built with **Next.js**, **React**, **TypeScript**, and **Tailwind CSS**. It provides a modern, responsive user interface for students and faculty to collaborate, manage projects, and interact with the backend API.
+# GuruSetu Frontend 💻
+
+> **The immersive, responsive interface for GuruSetu: The AI-Academic Talent Marketplace.**
+
+## 📖 Overview
+
+This repository contains the client-side application for **GuruSetu**. Built with **Next.js (App Router)** and **TypeScript**, it delivers a high-performance, Server-Side Rendered (SSR) experience. It serves as the bridge between students and faculty, offering real-time dashboards, interactive project discovery, and seamless integration with our AI-powered backend.
+
+## 🏗 Architecture
+
+The frontend uses a modular, component-driven architecture designed for scalability and speed.
+
+* **Next.js App Router:** Utilizes React Server Components for faster initial page loads and improved SEO.
+* **Service Layer Pattern:** API calls are abstracted into a dedicated `services/` directory, ensuring clean separation of concerns.
+* **Context API:** Manages global state for user authentication and UI themes.
+* **Responsive Design:** Fully optimized for desktop, tablet, and mobile views.
+
+## 🛠 Tech Stack
+
+* **Framework:** Next.js 14 (App Router)
+* **Language:** TypeScript
+* **Styling:** Tailwind CSS / CSS Modules (Global styles in `globals.css`)
+* **State Management:** React Context API
+* **Data Fetching:** Axios / Fetch API (via Service Layer)
+* **Icons:** Lucide React / React Icons
 
 ---
 
-## Table of Contents
-- [Project Structure](#project-structure)
-- [Features](#features)
-- [Setup & Installation](#setup--installation)
-- [Available Scripts](#available-scripts)
-- [Key Files & Folders](#key-files--folders)
-- [Development Notes](#development-notes)
-- [Contributing](#contributing)
-- [License](#license)
+## 📂 Project Structure
 
----
+Based on our production deployment:
 
-## Project Structure
-```
+```bash
 frontend/
-  public/           # Static assets (images, icons, etc.)
-  src/
-    app/            # Next.js app directory (routing, layouts, pages)
-    components/     # Reusable React components
-    context/        # React context providers (e.g., Auth)
-    hooks/          # Custom React hooks
-    services/       # API service functions
-    types/          # TypeScript type definitions
-  package.json      # Project metadata and scripts
-  tailwind.config.js# Tailwind CSS configuration
-  tsconfig.json     # TypeScript configuration
+├── src/
+│   ├── app/
+│   │   ├── (auth)/            # Login & Register route groups
+│   │   ├── dashboard/
+│   │   │   ├── faculty/       # Faculty: Create projects, view applicants
+│   │   │   └── student/       # Student: Profile, find mentors, track apps
+│   │   ├── globals.css        # Global styling
+│   │   └── layout.tsx         # Root layout structure
+│   ├── components/            # Reusable UI (Buttons, Cards, Modals)
+│   ├── context/               # AuthContext, NotificationContext
+│   ├── hooks/                 # Custom React hooks
+│   └── services/              # API Integration Layer
+│       ├── api.ts             # Axios instance & interceptors
+│       ├── authService.ts     # Login/Signup logic
+│       ├── facultyService.ts  # Project & student management
+│       └── facultyDashboardService.ts
+├── public/                    # Static assets
+└── package.json               # Dependencies
+
 ```
 
 ---
 
-## Features
-- **Authentication:** Login and signup for students and faculty
-- **Dashboards:** Separate dashboards for students and faculty
-- **Project Management:** View, create, and manage projects
-- **Applications:** Apply to projects, view application status
-- **Notifications:** Real-time notification system
-- **Profile Management:** Edit and view user profiles
-- **Support:** Support pages for help and feedback
-- **Responsive Design:** Mobile-friendly UI with Tailwind CSS
+## ⚡ Key Modules
+
+### 1. The Faculty Dashboard (`/dashboard/faculty`)
+
+A command center for professors to manage their research lab.
+
+* **Talent Scout:** View AI-recommended students sorted by compatibility score.
+* **Project Management:** Create and edit research openings.
+* **Incoming Applications:** Review and accept/reject student applications in real-time.
+
+### 2. The Student Hub (`/dashboard/student`)
+
+A unified profile and discovery platform for students.
+
+* **Smart Feed:** Personalized project recommendations based on the user's skillset.
+* **Application Tracker:** Live status updates (Applied -> Under Review -> Accepted).
+* **Profile Builder:** Dynamic resume creation that feeds into the backend vector engine.
+
+### 3. Service Integration (`/services`)
+
+We use a centralized service pattern to handle communication with the FastAPI backend.
+
+* `api.ts`: Configures base URLs and attaches JWT tokens to requests automatically.
+* `facultyService.ts`: Handles data fetching for research collaborations.
 
 ---
 
-## Setup & Installation
-1. **Install Node.js (v18 or higher)**
-2. Navigate to the frontend directory:
-   ```sh
-   cd frontend
-   ```
-3. Install dependencies:
-   ```sh
-   npm install
-   ```
-4. Start the development server:
-   ```sh
-   npm run dev
-   ```
-5. Open [http://localhost:3000](http://localhost:3000) in your browser.
+## 🚀 Getting Started
+
+### Prerequisites
+
+* Node.js 18+
+* npm or yarn
+
+### Installation
+
+1. **Clone the repository:**
+```bash
+git clone https://github.com/yourusername/gurusetu-frontend.git
+cd gurusetu-frontend
+
+```
+
+
+2. **Install Dependencies:**
+```bash
+npm install
+# or
+yarn install
+
+```
+
+
+3. **Environment Configuration:**
+Create a `.env.local` file in the root directory:
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000  # URL of your FastAPI Backend
+
+```
+
+
+
+### Running the Application
+
+Start the development server:
+
+```bash
+npm run dev
+
+```
+
+Visit `http://localhost:3000` to see the application live.
 
 ---
 
-## Available Scripts
-- `npm run dev` — Start the development server
-- `npm run build` — Build the app for production
-- `npm start` — Start the production server
-- `npm run lint` — Run ESLint for code quality
+## 🤝 Integration with Backend
+
+This frontend is designed to work seamlessly with the [GuruSetu Backend](https://www.google.com/search?q=https://github.com/yourusername/gurusetu-backend). Ensure the backend server is running on port `8000` (or update the `.env` file accordingly) for full functionality, including AI recommendations and authentication.
+
+## 📄 License
+
+Distributed under the MIT License. See `LICENSE` for more information.
 
 ---
 
-## Key Files & Folders
-- **public/** — Static assets (e.g., images like amrita-buildings.png)
-- **src/app/** — Next.js App Router directory:
-   - **layout.tsx** — Root layout for all pages
-   - **globals.css** — Global CSS (Tailwind base, custom utilities)
-   - **page.tsx** — Landing page
-   - **(auth)/** — Auth routes:
-      - **login/page.tsx** — Login page
-      - **signup/page.tsx** — Signup page
-   - **dashboard/** — Main dashboard area:
-      - **layout.tsx** — Dashboard layout
-      - **faculty/** — Faculty dashboard:
-         - **page.tsx** — Faculty dashboard home
-         - **all-students/page.tsx** — List all students
-         - **collaborations/page.tsx** — Faculty collaborations
-         - **notifications/page.tsx** — Faculty notifications
-         - **profile/page.tsx** — Faculty profile
-         - **profile/research/page.tsx** — Faculty research section
-         - **projects/page.tsx** — Faculty projects
-         - **support/page.tsx** — Faculty support/help
-      - **student/** — Student dashboard:
-         - **page.tsx** — Student dashboard home
-         - **all-faculty/page.tsx** — List all faculty
-         - **applications/page.tsx** — Student project applications
-         - **faculty/page.tsx** — Faculty list for students
-         - **faculty/[id]/page.tsx** — Individual faculty profile
-         - **notifications/page.tsx** — Student notifications
-         - **profile/page.tsx** — Student profile
-         - **profile/experience/page.tsx** — Student experience
-         - **profile/interests/page.tsx** — Student interests
-         - **projects/page.tsx** — Student projects
-         - **support/page.tsx** — Student support/help
-- **src/components/** — Reusable UI components:
-   - **NotificationBell.tsx** — Notification bell with dropdown
-   - **features/ProjectCard.tsx** — Project card display
-- **src/context/AuthContext.tsx** — React context for authentication state and actions
-- **src/hooks/useAuth.ts** — (Empty) Placeholder for custom authentication hook
-- **src/services/** — API service modules:
-   - **api.ts** — Axios instance with auth token handling
-   - **authService.ts** — Signup and login API calls
-   - **facultyDashboardService.ts** — Faculty dashboard data/services
-   - **facultyProjectService.ts** — Faculty project management
-   - **facultyService.ts** — Faculty info and summary
-   - **notificationService.ts** — Notification API calls
-   - **studentDashboardService.ts** — Student dashboard data/services
-   - **userService.ts** — User profile management
-- **src/types/** — TypeScript type definitions:
-   - **user.ts** — User, Auth, Login, Signup types
-   - **project.ts** — (Empty) Placeholder for project types
-   - **dashboard.ts** — (Empty) Placeholder for dashboard types
-- **package.json** — Project metadata, dependencies, and scripts
-- **tailwind.config.js** — Tailwind CSS configuration
-- **postcss.config.js** — PostCSS configuration for Tailwind
-- **tsconfig.json** — TypeScript configuration and path aliases
-- **next.config.mjs** — Next.js configuration
-- **next-env.d.ts** — Next.js TypeScript environment declarations
-
-
-## Development Notes
-- **API Base URL:** Update the API base URL in `src/services/api.ts` if the backend runs on a different host/port.
-- **Styling:** Uses Tailwind CSS for rapid UI development.
-- **Routing:** Uses Next.js App Router (app directory structure).
-- **Authentication:** Context-based authentication with JWT tokens.
-- **Environment Variables:** Create a `.env.local` file for custom environment variables if needed.
-
----
-
-## Contributing
-1. Fork the repository
-2. Create a new branch (`git checkout -b feature/your-feature`)
-3. Commit your changes
-4. Push to your branch
-5. Open a Pull Request
-
----
-
-## License
-This project is licensed under the MIT License.
+*Built with ❤️ by Team GuruSetu*
